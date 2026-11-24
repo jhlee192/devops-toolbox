@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>운영 명령어</title>
+<style>
+:root{
+  --bg:#fbfbfa; --surface:#fff; --border:#e4e2dd; --text:#1f1e1c; --muted:#75716b;
+  --accent:#b8543a; --code-bg:#f4f2ee; --warn:#a9631c; --when:#3c6b52; --rel:#5a5670;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#191817; --surface:#211f1e; --border:#37342f; --text:#eae8e4; --muted:#9c968d;
+    --accent:#e08a6d; --code-bg:#171615; --warn:#d9a05b; --when:#7fb195; --rel:#a49fb8;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo",sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:36px}
+main{padding:40px 0 80px;min-width:0}
+.toc{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:40px 4px 40px 0;font-size:.84rem}
+.toc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.toc-title{font-size:.76rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.toc-btn{padding:2px 9px;font-size:.72rem;font-family:inherit;color:var(--muted);background:transparent;
+  border:1px solid var(--border);border-radius:5px;cursor:pointer}
+.toc-btn:hover{color:var(--text);border-color:var(--muted)}
+#toc-toggle{display:none}
+.toc-area{border-bottom:1px solid var(--border)}
+.toc-area summary{list-style:none;display:flex;align-items:center;gap:8px;padding:8px 6px;cursor:pointer;
+  font-weight:600;border-radius:6px}
+.toc-area summary::-webkit-details-marker{display:none}
+.toc-area summary::before{content:"";width:6px;height:6px;flex:none;border-right:1.5px solid var(--muted);
+  border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
+.toc-area[open] summary::before{transform:rotate(45deg)}
+.toc-area summary:hover{background:var(--code-bg)}
+.toc-area.current summary .toc-name{color:var(--accent)}
+.toc-name{flex:1;min-width:0}
+.toc-n{font-size:.7rem;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.toc-area ul{list-style:none;margin:0 0 8px;padding:0 0 0 14px}
+.toc-area li a{display:block;padding:4px 8px;color:var(--muted);text-decoration:none;border-left:2px solid var(--border);
+  line-height:1.45}
+.toc-area li a:hover{color:var(--text)}
+.toc-area li a.active{color:var(--accent);border-left-color:var(--accent)}
+.toc-area li.hide{display:none}
+.cmd{scroll-margin-top:96px}
+.area{scroll-margin-top:96px}
+header{margin-bottom:28px}
+h1{font-size:1.5rem;margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:.85rem;margin:0}
+.searchbar{position:sticky;top:0;z-index:10;padding:14px 0 12px;background:var(--bg);
+  border-bottom:1px solid var(--border);margin-bottom:24px}
+#q{width:100%;padding:11px 14px;font-size:.95rem;font-family:inherit;color:var(--text);
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;outline:none}
+#q:focus{border-color:var(--accent)}
+#count{font-size:.78rem;color:var(--muted);margin-top:7px}
+.area{margin-bottom:34px}
+.area h2{font-size:.76rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+  font-weight:600;margin:0 0 12px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.cmd{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:16px 18px;margin-bottom:12px}
+.cmd h3{font-size:1rem;margin:0 0 11px;font-weight:600;letter-spacing:-.01em}
+.codebar{display:flex;justify-content:flex-end;margin-bottom:5px}
+.copy{padding:3px 11px;font-size:.72rem;font-family:inherit;color:var(--muted);
+  background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;
+  transition:color .15s,border-color .15s}
+.copy:hover{color:var(--text);border-color:var(--muted)}
+.copy.done{color:var(--when);border-color:var(--when)}
+pre{margin:0;padding:13px 15px;background:var(--code-bg);border-radius:7px;overflow-x:auto}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.82rem;line-height:1.65;
+  white-space:pre;color:var(--text)}
+.notes{list-style:none;margin:12px 0 0;padding:0;font-size:.855rem}
+.notes li{margin-bottom:5px;padding-left:2px;color:var(--text)}
+.notes .lb{display:inline-block;min-width:34px;margin-right:9px;font-size:.72rem;font-weight:600;
+  padding:1px 7px;border-radius:4px;background:var(--code-bg);vertical-align:1px}
+.when .lb{color:var(--when)} .warn .lb{color:var(--warn)} .rel .lb{color:var(--rel)}
+.ic{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.82em;
+  padding:1px 5px;border-radius:4px;background:var(--code-bg);color:var(--accent)}
+.empty{display:none;text-align:center;color:var(--muted);padding:50px 0;font-size:.9rem}
+.hide{display:none}
+/* 화면 전환: body[data-view] = home | area | search */
+body[data-view="home"] .wrap{grid-template-columns:minmax(0,1fr);max-width:1000px}
+body[data-view="home"] .toc,body[data-view="home"] .area,body[data-view="home"] .back{display:none}
+body:not([data-view="home"]) #home{display:none}
+body[data-view="area"] #toc-all{display:none}
+h1 a{color:inherit;text-decoration:none}
+.back{display:inline-block;margin:0 0 18px;font-size:.84rem;color:var(--muted);text-decoration:none}
+.back:hover{color:var(--accent)}
+.home-h{font-size:.76rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+  font-weight:600;margin:0 0 12px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:38px}
+.card{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:14px 16px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);
+  text-decoration:none;font-weight:600;transition:border-color .15s}
+.card:hover{border-color:var(--accent)}
+.card:hover .card-name{color:var(--accent)}
+.card-n{font-size:.78rem;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.situations{columns:2 360px;column-gap:28px}
+.sit{break-inside:avoid;margin-bottom:22px}
+.sit h3{font-size:.92rem;margin:0 0 6px;font-weight:600}
+.sit ul{list-style:none;margin:0;padding:0}
+.sit li{display:flex;align-items:baseline;gap:10px;padding:4px 0;border-bottom:1px dashed var(--border);font-size:.86rem}
+.sit li a{flex:1;min-width:0;color:var(--text);text-decoration:none}
+.sit li a:hover{color:var(--accent)}
+.sit-area{flex:none;font-size:.72rem;color:var(--muted)}
+@media(max-width:900px){
+  .wrap{display:block}
+  main{padding:20px 0 60px}
+  .toc{position:static;max-height:none;overflow:visible;padding:20px 0 0}
+  #toc-toggle{display:inline-block}
+  .toc-list{display:none;margin-top:6px}
+  .toc.open .toc-list{display:block}
+  .toc:not(.open) #toc-all{display:none}
+}
+</style>
+</head>
+<body data-view="home">
+<div class="wrap">
+  <nav class="toc" id="toc" aria-label="목차">
+    <div class="toc-head">
+      <span class="toc-title">목차</span>
+      <span>
+        <button class="toc-btn" id="toc-all" type="button">모두 펼치기</button>
+        <button class="toc-btn" id="toc-toggle" type="button">열기</button>
+      </span>
+    </div>
+    <div class="toc-list">
+<details class="toc-area" data-area="bulk-edit">
+  <summary><span class="toc-name">파일 일괄 수정 (ls / grep / sed)</span><span class="toc-n">6</span></summary>
+  <ul><li><a href="#bulk-edit-숫자가-섞인-경로를-숫자-순으로-나열" data-target="bulk-edit-숫자가-섞인-경로를-숫자-순으로-나열">숫자가 섞인 경로를 숫자 순으로 나열</a></li><li><a href="#bulk-edit-여러-파일을-숫자-순으로-grep" data-target="bulk-edit-여러-파일을-숫자-순으로-grep">여러 파일을 숫자 순으로 grep</a></li><li><a href="#bulk-edit-치환-결과-미리보기" data-target="bulk-edit-치환-결과-미리보기">치환 결과 미리보기</a></li><li><a href="#bulk-edit-여러-파일에서-문자열-일괄-삭제" data-target="bulk-edit-여러-파일에서-문자열-일괄-삭제">여러 파일에서 문자열 일괄 삭제</a></li><li><a href="#bulk-edit-특정-줄과-다음-줄을-함께-삭제" data-target="bulk-edit-특정-줄과-다음-줄을-함께-삭제">특정 줄과 다음 줄을 함께 삭제</a></li><li><a href="#bulk-edit-sed-백업-파일-일괄-삭제" data-target="bulk-edit-sed-백업-파일-일괄-삭제">sed 백업 파일 일괄 삭제</a></li></ul>
+</details>
+<details class="toc-area" data-area="checksum">
+  <summary><span class="toc-name">체크섬</span><span class="toc-n">1</span></summary>
+  <ul><li><a href="#checksum-공개된-sha256-값으로-파일-검증" data-target="checksum-공개된-sha256-값으로-파일-검증">공개된 SHA256 값으로 파일 검증</a></li></ul>
+</details>
+<details class="toc-area" data-area="dns">
+  <summary><span class="toc-name">DNS (노드)</span><span class="toc-n">5</span></summary>
+  <ul><li><a href="#dns-노드가-실제로-쓰는-dns-서버-확인" data-target="dns-노드가-실제로-쓰는-dns-서버-확인">노드가 실제로 쓰는 DNS 서버 확인</a></li><li><a href="#dns-networkmanager-연결의-dns-설정-확인" data-target="dns-networkmanager-연결의-dns-설정-확인">NetworkManager 연결의 DNS 설정 확인</a></li><li><a href="#dns-특정-목적지로-가는-경로-확인" data-target="dns-특정-목적지로-가는-경로-확인">특정 목적지로 가는 경로 확인</a></li><li><a href="#dns-dig-없이-dns-응답률-측정" data-target="dns-dig-없이-dns-응답률-측정">dig 없이 DNS 응답률 측정</a></li><li><a href="#dns-resolvconf-변경-이력-보기" data-target="dns-resolvconf-변경-이력-보기">resolv.conf 변경 이력 보기</a></li></ul>
+</details>
+<details class="toc-area" data-area="docker">
+  <summary><span class="toc-name">Docker</span><span class="toc-n">6</span></summary>
+  <ul><li><a href="#docker-컨테이너-로그-설정-확인" data-target="docker-컨테이너-로그-설정-확인">컨테이너 로그 설정 확인</a></li><li><a href="#docker-컨테이너-로그-파일-크기-확인" data-target="docker-컨테이너-로그-파일-크기-확인">컨테이너 로그 파일 크기 확인</a></li><li><a href="#docker-컨테이너-환경변수-확인" data-target="docker-컨테이너-환경변수-확인">컨테이너 환경변수 확인</a></li><li><a href="#docker-daemonjson-문법-검사" data-target="docker-daemonjson-문법-검사">daemon.json 문법 검사</a></li><li><a href="#docker-daemonjson-변경-반영-dockerd-재시작" data-target="docker-daemonjson-변경-반영-dockerd-재시작">daemon.json 변경 반영 (dockerd 재시작)</a></li><li><a href="#docker-compose-컨테이너-재생성" data-target="docker-compose-컨테이너-재생성">compose 컨테이너 재생성</a></li></ul>
+</details>
+<details class="toc-area" data-area="gitlab">
+  <summary><span class="toc-name">GitLab (Omnibus / Docker)</span><span class="toc-n">21</span></summary>
+  <ul><li><a href="#gitlab-서비스-구성요소-상태-확인" data-target="gitlab-서비스-구성요소-상태-확인">서비스 구성요소 상태 확인</a></li><li><a href="#gitlab-실제-적용된-설정-값-보기" data-target="gitlab-실제-적용된-설정-값-보기">실제 적용된 설정 값 보기</a></li><li><a href="#gitlab-show-config에-안-보이는-기본값-추적" data-target="gitlab-show-config에-안-보이는-기본값-추적">show-config에 안 보이는 기본값 추적</a></li><li><a href="#gitlab-rails-설정-값-직접-조회" data-target="gitlab-rails-설정-값-직접-조회">Rails 설정 값 직접 조회</a></li><li><a href="#gitlab-sidekiq-사용률과-큐-대기-시간-확인" data-target="gitlab-sidekiq-사용률과-큐-대기-시간-확인">Sidekiq 사용률과 큐 대기 시간 확인</a></li><li><a href="#gitlab-sidekiq에서-지금-실행-중인-잡-보기" data-target="gitlab-sidekiq에서-지금-실행-중인-잡-보기">Sidekiq에서 지금 실행 중인 잡 보기</a></li><li><a href="#gitlab-큐에-쌓인-잡-종류-집계" data-target="gitlab-큐에-쌓인-잡-종류-집계">큐에 쌓인 잡 종류 집계</a></li><li><a href="#gitlab-실패-잡dead--retry-원인-집계" data-target="gitlab-실패-잡dead--retry-원인-집계">실패 잡(Dead / Retry) 원인 집계</a></li><li><a href="#gitlab-머지-진행-중locked으로-멈춘-mr-찾기" data-target="gitlab-머지-진행-중locked으로-멈춘-mr-찾기">머지 진행 중(locked)으로 멈춘 MR 찾기</a></li><li><a href="#gitlab-sidekiq-로그에서-특정-문자열-찾기" data-target="gitlab-sidekiq-로그에서-특정-문자열-찾기">Sidekiq 로그에서 특정 문자열 찾기</a></li><li><a href="#gitlab-내장-postgresql-커넥션-사용량" data-target="gitlab-내장-postgresql-커넥션-사용량">내장 PostgreSQL 커넥션 사용량</a></li><li><a href="#gitlab-rails-콘솔-열기" data-target="gitlab-rails-콘솔-열기">Rails 콘솔 열기</a></li><li><a href="#gitlab-계정-잠금-상태와-실패-횟수-확인" data-target="gitlab-계정-잠금-상태와-실패-횟수-확인">계정 잠금 상태와 실패 횟수 확인</a></li><li><a href="#gitlab-계정-잠금-해제" data-target="gitlab-계정-잠금-해제">계정 잠금 해제</a></li><li><a href="#gitlab-계정-잠금-기준-확인" data-target="gitlab-계정-잠금-기준-확인">계정 잠금 기준 확인</a></li><li><a href="#gitlab-인증-이벤트-테이블에서-로그인-실패-ip-조회" data-target="gitlab-인증-이벤트-테이블에서-로그인-실패-ip-조회">인증 이벤트 테이블에서 로그인 실패 IP 조회</a></li><li><a href="#gitlab-로그에서-로그인-실패-ip-찾기" data-target="gitlab-로그에서-로그인-실패-ip-찾기">로그에서 로그인 실패 IP 찾기</a></li><li><a href="#gitlab-번들-nginx-설정-문법-검사" data-target="gitlab-번들-nginx-설정-문법-검사">번들 Nginx 설정 문법 검사</a></li><li><a href="#gitlab-번들-nginx-설정-무중단-반영" data-target="gitlab-번들-nginx-설정-무중단-반영">번들 Nginx 설정 무중단 반영</a></li><li><a href="#gitlab-직접-고친-번들-nginx-설정이-남아-있는지-확인" data-target="gitlab-직접-고친-번들-nginx-설정이-남아-있는지-확인">직접 고친 번들 Nginx 설정이 남아 있는지 확인</a></li><li><a href="#gitlab-버전별-변경-내역changelog-검색" data-target="gitlab-버전별-변경-내역changelog-검색">버전별 변경 내역(CHANGELOG) 검색</a></li></ul>
+</details>
+<details class="toc-area" data-area="java">
+  <summary><span class="toc-name">Java 인증서 (keytool)</span><span class="toc-n">6</span></summary>
+  <ul><li><a href="#java-truststore에서-ca-이름으로-검색" data-target="java-truststore에서-ca-이름으로-검색">truststore에서 CA 이름으로 검색</a></li><li><a href="#java-ca-이름으로-alias-찾기" data-target="java-ca-이름으로-alias-찾기">CA 이름으로 alias 찾기</a></li><li><a href="#java-특정-alias-등록-여부-확인" data-target="java-특정-alias-등록-여부-확인">특정 alias 등록 여부 확인</a></li><li><a href="#java-루트-ca-인증서-등록" data-target="java-루트-ca-인증서-등록">루트 CA 인증서 등록</a></li><li><a href="#java-인증서-삭제" data-target="java-인증서-삭제">인증서 삭제</a></li><li><a href="#java-컨테이너-안-jvm에-호스트-인증서-등록" data-target="java-컨테이너-안-jvm에-호스트-인증서-등록">컨테이너 안 JVM에 호스트 인증서 등록</a></li></ul>
+</details>
+<details class="toc-area" data-area="kubernetes">
+  <summary><span class="toc-name">Kubernetes</span><span class="toc-n">17</span></summary>
+  <ul><li><a href="#kubernetes-pod-uid로-어떤-pod인지-찾기" data-target="kubernetes-pod-uid로-어떤-pod인지-찾기">Pod UID로 어떤 Pod인지 찾기</a></li><li><a href="#kubernetes-pod-이름으로-uid-확인" data-target="kubernetes-pod-이름으로-uid-확인">Pod 이름으로 UID 확인</a></li><li><a href="#kubernetes-네임스페이스의-pod-uid와-노드-한-번에-보기" data-target="kubernetes-네임스페이스의-pod-uid와-노드-한-번에-보기">네임스페이스의 Pod UID와 노드 한 번에 보기</a></li><li><a href="#kubernetes-노드에서-crictl로-pod-uid-확인" data-target="kubernetes-노드에서-crictl로-pod-uid-확인">노드에서 crictl로 Pod UID 확인</a></li><li><a href="#kubernetes-cri-o-이미지-저장소-경로-확인" data-target="kubernetes-cri-o-이미지-저장소-경로-확인">cri-o 이미지 저장소 경로 확인</a></li><li><a href="#kubernetes-coredns-로그에서-업스트림-timeout-찾기" data-target="kubernetes-coredns-로그에서-업스트림-timeout-찾기">CoreDNS 로그에서 업스트림 timeout 찾기</a></li><li><a href="#kubernetes-coredns-설정corefile-확인" data-target="kubernetes-coredns-설정corefile-확인">CoreDNS 설정(Corefile) 확인</a></li><li><a href="#kubernetes-kubelet의-dns-설정-확인" data-target="kubernetes-kubelet의-dns-설정-확인">kubelet의 DNS 설정 확인</a></li><li><a href="#kubernetes-임시-pod로-dns-경로-비교" data-target="kubernetes-임시-pod로-dns-경로-비교">임시 Pod로 DNS 경로 비교</a></li><li><a href="#kubernetes-노드에-이미-있는-이미지-찾기" data-target="kubernetes-노드에-이미-있는-이미지-찾기">노드에 이미 있는 이미지 찾기</a></li><li><a href="#kubernetes-pod-컨테이너별-준비-상태재시작직전-종료-사유-보기" data-target="kubernetes-pod-컨테이너별-준비-상태재시작직전-종료-사유-보기">Pod 컨테이너별 준비 상태·재시작·직전 종료 사유 보기</a></li><li><a href="#kubernetes-재시작-전-컨테이너-로그-보기" data-target="kubernetes-재시작-전-컨테이너-로그-보기">재시작 전 컨테이너 로그 보기</a></li><li><a href="#kubernetes-네임스페이스-이벤트를-시간순으로-보기" data-target="kubernetes-네임스페이스-이벤트를-시간순으로-보기">네임스페이스 이벤트를 시간순으로 보기</a></li><li><a href="#kubernetes-컨테이너-probe리소스-설정-보기" data-target="kubernetes-컨테이너-probe리소스-설정-보기">컨테이너 probe·리소스 설정 보기</a></li><li><a href="#kubernetes-running이-아닌-pod만-보기" data-target="kubernetes-running이-아닌-pod만-보기">Running이 아닌 Pod만 보기</a></li><li><a href="#kubernetes-deployment가-언제-재시작변경됐는지-보기" data-target="kubernetes-deployment가-언제-재시작변경됐는지-보기">Deployment가 언제 재시작·변경됐는지 보기</a></li><li><a href="#kubernetes-pvc가-실제로-어디에-저장되는지-보기" data-target="kubernetes-pvc가-실제로-어디에-저장되는지-보기">PVC가 실제로 어디에 저장되는지 보기</a></li></ul>
+</details>
+<details class="toc-area" data-area="linux">
+  <summary><span class="toc-name">Linux 프로세스·커널</span><span class="toc-n">6</span></summary>
+  <ul><li><a href="#linux-d-state로-멈춘-프로세스-찾기" data-target="linux-d-state로-멈춘-프로세스-찾기">D state로 멈춘 프로세스 찾기</a></li><li><a href="#linux-프로세스가-커널-어디서-멈췄는지-보기" data-target="linux-프로세스가-커널-어디서-멈췄는지-보기">프로세스가 커널 어디서 멈췄는지 보기</a></li><li><a href="#linux-프로세스-시작-시각-확인" data-target="linux-프로세스-시작-시각-확인">프로세스 시작 시각 확인</a></li><li><a href="#linux-thptransparent-huge-page-설정-확인" data-target="linux-thptransparent-huge-page-설정-확인">THP(Transparent Huge Page) 설정 확인</a></li><li><a href="#linux-커널-메시지에서-hung-taskoom-찾기" data-target="linux-커널-메시지에서-hung-taskoom-찾기">커널 메시지에서 hung task·OOM 찾기</a></li><li><a href="#linux-conntrack-테이블-사용량-확인" data-target="linux-conntrack-테이블-사용량-확인">conntrack 테이블 사용량 확인</a></li></ul>
+</details>
+<details class="toc-area" data-area="loki">
+  <summary><span class="toc-name">Loki</span><span class="toc-n">1</span></summary>
+  <ul><li><a href="#loki-로그-보존-기간retention-설정-확인" data-target="loki-로그-보존-기간retention-설정-확인">로그 보존 기간(retention) 설정 확인</a></li></ul>
+</details>
+<details class="toc-area" data-area="nginx">
+  <summary><span class="toc-name">Nginx</span><span class="toc-n">3</span></summary>
+  <ul><li><a href="#nginx-적용-중인-설정-전체-보기" data-target="nginx-적용-중인-설정-전체-보기">적용 중인 설정 전체 보기</a></li><li><a href="#nginx-설정-문법-검사" data-target="nginx-설정-문법-검사">설정 문법 검사</a></li><li><a href="#nginx-설정-무중단-반영" data-target="nginx-설정-무중단-반영">설정 무중단 반영</a></li></ul>
+</details>
+<details class="toc-area" data-area="prometheus">
+  <summary><span class="toc-name">Prometheus / PromQL</span><span class="toc-n">5</span></summary>
+  <ul><li><a href="#prometheus-삭제된-pod의-재시작-횟수-확인" data-target="prometheus-삭제된-pod의-재시작-횟수-확인">삭제된 Pod의 재시작 횟수 확인</a></li><li><a href="#prometheus-재시작이-발생한-컨테이너만-추리기" data-target="prometheus-재시작이-발생한-컨테이너만-추리기">재시작이 발생한 컨테이너만 추리기</a></li><li><a href="#prometheus-컨테이너의-마지막-종료-사유-확인" data-target="prometheus-컨테이너의-마지막-종료-사유-확인">컨테이너의 마지막 종료 사유 확인</a></li><li><a href="#prometheus-pod-기동-시각-확인" data-target="prometheus-pod-기동-시각-확인">Pod 기동 시각 확인</a></li><li><a href="#prometheus-pod가-사라진-시각-확인" data-target="prometheus-pod가-사라진-시각-확인">Pod가 사라진 시각 확인</a></li></ul>
+</details>
+<details class="toc-area" data-area="skopeo">
+  <summary><span class="toc-name">skopeo (컨테이너 이미지 복사)</span><span class="toc-n">2</span></summary>
+  <ul><li><a href="#skopeo-레지스트리-로그인" data-target="skopeo-레지스트리-로그인">레지스트리 로그인</a></li><li><a href="#skopeo-cri-o-노드에-있는-이미지를-레지스트리로-push" data-target="skopeo-cri-o-노드에-있는-이미지를-레지스트리로-push">cri-o 노드에 있는 이미지를 레지스트리로 push</a></li></ul>
+</details>
+<details class="toc-area" data-area="ssh">
+  <summary><span class="toc-name">SSH</span><span class="toc-n">3</span></summary>
+  <ul><li><a href="#ssh-제어-소켓으로-접속-재사용-master-연결" data-target="ssh-제어-소켓으로-접속-재사용-master-연결">제어 소켓으로 접속 재사용 (master 연결)</a></li><li><a href="#ssh-제어-소켓으로-원격-명령-실행" data-target="ssh-제어-소켓으로-원격-명령-실행">제어 소켓으로 원격 명령 실행</a></li><li><a href="#ssh-떠-있는-제어-소켓과-접속-대상-매핑-확인" data-target="ssh-떠-있는-제어-소켓과-접속-대상-매핑-확인">떠 있는 제어 소켓과 접속 대상 매핑 확인</a></li></ul>
+</details>
+<details class="toc-area" data-area="systemd">
+  <summary><span class="toc-name">systemd / journalctl</span><span class="toc-n">3</span></summary>
+  <ul><li><a href="#systemd-서비스-로그를-시간-범위로-잘라내기" data-target="systemd-서비스-로그를-시간-범위로-잘라내기">서비스 로그를 시간 범위로 잘라내기</a></li><li><a href="#systemd-서비스-로그-실시간-확인" data-target="systemd-서비스-로그-실시간-확인">서비스 로그 실시간 확인</a></li><li><a href="#systemd-특정-우선순위-이상만-보기" data-target="systemd-특정-우선순위-이상만-보기">특정 우선순위 이상만 보기</a></li></ul>
+</details></div>
+  </nav>
+  <main>
+  <header>
+    <h1><a href="#/">운영 명령어</a></h1>
+    <p class="sub">14개 영역 · 85개 명령어 · 원본은 <code>commands/*.md</code>, <code>INDEX.md</code> · <code>node build.js</code>로 생성</p>
+  </header>
+  <div class="searchbar">
+    <input id="q" type="search" placeholder="검색 — 명령어, 상황, 옵션 무엇이든" autocomplete="off" autofocus>
+    <div id="count">85개</div>
+  </div>
+  
+<section id="home">
+  <h2 class="home-h">영역</h2>
+  <div class="cards">
+    <a class="card" href="#bulk-edit"><span class="card-name">파일 일괄 수정 (ls / grep / sed)</span><span class="card-n">6</span></a>
+    <a class="card" href="#checksum"><span class="card-name">체크섬</span><span class="card-n">1</span></a>
+    <a class="card" href="#dns"><span class="card-name">DNS (노드)</span><span class="card-n">5</span></a>
+    <a class="card" href="#docker"><span class="card-name">Docker</span><span class="card-n">6</span></a>
+    <a class="card" href="#gitlab"><span class="card-name">GitLab (Omnibus / Docker)</span><span class="card-n">21</span></a>
+    <a class="card" href="#java"><span class="card-name">Java 인증서 (keytool)</span><span class="card-n">6</span></a>
+    <a class="card" href="#kubernetes"><span class="card-name">Kubernetes</span><span class="card-n">17</span></a>
+    <a class="card" href="#linux"><span class="card-name">Linux 프로세스·커널</span><span class="card-n">6</span></a>
+    <a class="card" href="#loki"><span class="card-name">Loki</span><span class="card-n">1</span></a>
+    <a class="card" href="#nginx"><span class="card-name">Nginx</span><span class="card-n">3</span></a>
+    <a class="card" href="#prometheus"><span class="card-name">Prometheus / PromQL</span><span class="card-n">5</span></a>
+    <a class="card" href="#skopeo"><span class="card-name">skopeo (컨테이너 이미지 복사)</span><span class="card-n">2</span></a>
+    <a class="card" href="#ssh"><span class="card-name">SSH</span><span class="card-n">3</span></a>
+    <a class="card" href="#systemd"><span class="card-name">systemd / journalctl</span><span class="card-n">3</span></a>
+  </div>
+  <h2 class="home-h">상황별 색인</h2>
+  <div class="situations">
+    <div class="sit">
+      <h3>장애 조사</h3>
+      <ul><li><a href="#systemd-서비스-로그를-시간-범위로-잘라내기">특정 시각의 서비스 로그를 봐야 할 때</a><span class="sit-area">systemd / journalctl</span></li><li><a href="#systemd-서비스-로그-실시간-확인">조치 넣고 반응을 실시간으로 볼 때</a><span class="sit-area">systemd / journalctl</span></li><li><a href="#systemd-특정-우선순위-이상만-보기">로그가 너무 많아 에러만 걸러낼 때</a><span class="sit-area">systemd / journalctl</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>파일 일괄 수정</h3>
+      <ul><li><a href="#bulk-edit-숫자가-섞인-경로를-숫자-순으로-나열">번호 붙은 파일이 1, 10, 2 순서로 나올 때</a><span class="sit-area">파일 일괄 수정 (ls / grep / sed)</span></li><li><a href="#bulk-edit-여러-파일을-숫자-순으로-grep">여러 파일을 순서대로 grep할 때</a><span class="sit-area">파일 일괄 수정 (ls / grep / sed)</span></li><li><a href="#bulk-edit-치환-결과-미리보기">sed로 고치기 전에 바뀔 줄을 확인할 때</a><span class="sit-area">파일 일괄 수정 (ls / grep / sed)</span></li><li><a href="#bulk-edit-여러-파일에서-문자열-일괄-삭제">여러 파일에서 같은 문자열을 한 번에 지울 때</a><span class="sit-area">파일 일괄 수정 (ls / grep / sed)</span></li><li><a href="#bulk-edit-특정-줄과-다음-줄을-함께-삭제">두 줄짜리 블록(YAML 항목 등)을 빼낼 때</a><span class="sit-area">파일 일괄 수정 (ls / grep / sed)</span></li><li><a href="#bulk-edit-sed-백업-파일-일괄-삭제">sed -i.bak 백업을 정리할 때</a><span class="sit-area">파일 일괄 수정 (ls / grep / sed)</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>GitLab</h3>
+      <ul><li><a href="#gitlab-머지-진행-중locked으로-멈춘-mr-찾기">머지가 &quot;Drum roll&quot; 화면에서 안 넘어갈 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-sidekiq-사용률과-큐-대기-시간-확인">머지·파이프라인이 느릴 때 Sidekiq가 밀렸는지 볼 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-sidekiq에서-지금-실행-중인-잡-보기">Sidekiq 스레드를 무엇이 차지하는지 볼 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-큐에-쌓인-잡-종류-집계">큐에 무슨 잡이 쌓였는지 볼 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-실패-잡dead--retry-원인-집계">Dead 잡이 어떤 에러로 죽는지 볼 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-sidekiq-로그에서-특정-문자열-찾기">특정 워커나 에러를 Sidekiq 로그에서 찾을 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-실제-적용된-설정-값-보기">gitlab.rb와 환경변수를 합친 최종 설정을 볼 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-show-config에-안-보이는-기본값-추적">설정 안 한 값이 왜 그렇게 동작하는지 따라갈 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-rails-설정-값-직접-조회">메일이 실제로 켜져 있는지, 어떤 방식으로 나가는지 볼 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-서비스-구성요소-상태-확인">구성요소가 다 떠 있는지, 최근 재시작됐는지 볼 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-내장-postgresql-커넥션-사용량">스레드·워커 늘리기 전에 DB 커넥션 여유를 볼 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-계정-잠금-상태와-실패-횟수-확인">&quot;Your account is locked.&quot;로 로그인이 안 될 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-계정-잠금-해제">잠긴 계정(root 포함)을 바로 풀어야 할 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-계정-잠금-기준-확인">몇 번 틀리면 잠기는지 볼 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-로그에서-로그인-실패-ip-찾기">누가 로그인을 틀렸는지 IP를 찾을 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-인증-이벤트-테이블에서-로그인-실패-ip-조회">로그인 실패 기록을 DB에서 조회할 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-rails-콘솔-열기">Rails 콘솔에서 여러 줄 Ruby를 실행할 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-번들-nginx-설정-문법-검사">번들 Nginx 설정을 고친 뒤 문법을 검사할 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-번들-nginx-설정-무중단-반영">번들 Nginx 설정을 연결 끊지 않고 반영할 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li><li><a href="#gitlab-직접-고친-번들-nginx-설정이-남아-있는지-확인">reconfigure·업그레이드 뒤 직접 넣은 Nginx 설정이 사라졌는지 볼 때</a><span class="sit-area">GitLab (Omnibus / Docker)</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>Docker</h3>
+      <ul><li><a href="#docker-컨테이너-로그-설정-확인">컨테이너 로그가 로테이션되는지 볼 때</a><span class="sit-area">Docker</span></li><li><a href="#docker-컨테이너-로그-파일-크기-확인">dockerd CPU가 높거나 /var/lib/docker가 커졌을 때</a><span class="sit-area">Docker</span></li><li><a href="#docker-컨테이너-환경변수-확인">실행 중인 컨테이너에 들어간 환경변수를 볼 때</a><span class="sit-area">Docker</span></li><li><a href="#docker-daemonjson-문법-검사">daemon.json 고친 뒤 재시작하기 전에</a><span class="sit-area">Docker</span></li><li><a href="#docker-daemonjson-변경-반영-dockerd-재시작">daemon.json 변경을 반영할 때</a><span class="sit-area">Docker</span></li><li><a href="#docker-compose-컨테이너-재생성">로그 설정·환경변수 바꾼 컨테이너를 다시 만들 때</a><span class="sit-area">Docker</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>Pod 이력 추적</h3>
+      <ul><li><a href="#prometheus-삭제된-pod의-재시작-횟수-확인">Pod가 지워져서 재시작 횟수를 못 볼 때</a><span class="sit-area">Prometheus / PromQL</span></li><li><a href="#prometheus-재시작이-발생한-컨테이너만-추리기">네임스페이스에서 재시작 겪은 컨테이너만 훑을 때</a><span class="sit-area">Prometheus / PromQL</span></li><li><a href="#prometheus-컨테이너의-마지막-종료-사유-확인">재시작이 OOM 때문인지 확인할 때</a><span class="sit-area">Prometheus / PromQL</span></li><li><a href="#prometheus-pod-기동-시각-확인">Pod가 언제부터 언제까지 떠 있었는지 알아야 할 때</a><span class="sit-area">Prometheus / PromQL</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>Kubernetes</h3>
+      <ul><li><a href="#kubernetes-pod-uid로-어떤-pod인지-찾기">/var/lib/kubelet/pods 아래 디렉터리가 어느 Pod 것인지 찾을 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-pod-이름으로-uid-확인">Pod 이름은 아는데 kubelet 디렉터리(UID)를 찾아야 할 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-네임스페이스의-pod-uid와-노드-한-번에-보기">여러 Pod의 UID와 떠 있는 노드를 같이 볼 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-노드에서-crictl로-pod-uid-확인">kubectl 권한 없이 노드에서 Pod UID를 볼 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-cri-o-이미지-저장소-경로-확인">cri-o가 이미지를 어느 경로에 저장하는지 볼 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-coredns-로그에서-업스트림-timeout-찾기">Pod에서 DNS 조회가 실패하거나 느릴 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-coredns-설정corefile-확인">CoreDNS가 외부 질의를 어디로 넘기는지 볼 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-kubelet의-dns-설정-확인">Pod의 resolv.conf가 어디서 오는지 볼 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-임시-pod로-dns-경로-비교">업스트림 직접 질의와 CoreDNS 경유 질의를 비교할 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-노드에-이미-있는-이미지-찾기">외부망이 막힌 클러스터에서 디버그 Pod 이미지를 고를 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-pod-컨테이너별-준비-상태재시작직전-종료-사유-보기">2/3 Running처럼 일부 컨테이너만 안 뜰 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-재시작-전-컨테이너-로그-보기">재시작 반복하는 컨테이너가 죽기 전에 뭘 찍었는지 볼 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-네임스페이스-이벤트를-시간순으로-보기">probe 실패·재시작 이벤트를 최근 순으로 볼 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-컨테이너-probe리소스-설정-보기">probe 명령과 timeout 설정을 확인할 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-running이-아닌-pod만-보기">클러스터에서 문제 있는 Pod만 추릴 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-deployment가-언제-재시작변경됐는지-보기">에러 시작 시점과 Deployment 변경 시점을 맞춰볼 때</a><span class="sit-area">Kubernetes</span></li><li><a href="#kubernetes-pvc가-실제로-어디에-저장되는지-보기">볼륨이 NFS인지 노드 로컬인지 확인할 때</a><span class="sit-area">Kubernetes</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>Loki</h3>
+      <ul><li><a href="#loki-로그-보존-기간retention-설정-확인">Loki 로그가 지워지는지, 보존 기간이 얼마인지 볼 때</a><span class="sit-area">Loki</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>Nginx</h3>
+      <ul><li><a href="#nginx-적용-중인-설정-전체-보기">어느 server 블록·location이 어디로 프록시되는지 볼 때</a><span class="sit-area">Nginx</span></li><li><a href="#nginx-적용-중인-설정-전체-보기">넣은 접근 제어(allow/deny 등)가 실제로 들어갔는지 볼 때</a><span class="sit-area">Nginx</span></li><li><a href="#nginx-설정-문법-검사">설정 고친 뒤 반영하기 전에</a><span class="sit-area">Nginx</span></li><li><a href="#nginx-설정-무중단-반영">설정을 연결 끊지 않고 반영할 때</a><span class="sit-area">Nginx</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>컨테이너 이미지</h3>
+      <ul><li><a href="#skopeo-레지스트리-로그인">push가 denied / authentication required로 실패할 때</a><span class="sit-area">skopeo (컨테이너 이미지 복사)</span></li><li><a href="#skopeo-cri-o-노드에-있는-이미지를-레지스트리로-push">cri-o 노드에 있는 이미지를 레지스트리로 올릴 때</a><span class="sit-area">skopeo (컨테이너 이미지 복사)</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>DNS</h3>
+      <ul><li><a href="#dns-노드가-실제로-쓰는-dns-서버-확인">노드·Pod에서 DNS가 안 될 때 먼저 볼 것</a><span class="sit-area">DNS (노드)</span></li><li><a href="#dns-노드가-실제로-쓰는-dns-서버-확인">resolv.conf의 search에 IP가 들어가 있을 때</a><span class="sit-area">DNS (노드)</span></li><li><a href="#dns-networkmanager-연결의-dns-설정-확인">resolv.conf가 왜 그렇게 생성됐는지 원래 설정을 볼 때</a><span class="sit-area">DNS (노드)</span></li><li><a href="#dns-resolvconf-변경-이력-보기">resolv.conf가 언제 다시 생성됐는지 볼 때</a><span class="sit-area">DNS (노드)</span></li><li><a href="#dns-특정-목적지로-가는-경로-확인">패킷이 어느 인터페이스·게이트웨이로 나가는지 볼 때</a><span class="sit-area">DNS (노드)</span></li><li><a href="#dns-dig-없이-dns-응답률-측정">dig·nslookup이 없는 노드에서 DNS 응답을 확인할 때</a><span class="sit-area">DNS (노드)</span></li><li><a href="#dns-dig-없이-dns-응답률-측정">DNS가 간헐적으로 timeout 날 때 응답률을 잴 때</a><span class="sit-area">DNS (노드)</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>Linux 프로세스·커널</h3>
+      <ul><li><a href="#linux-d-state로-멈춘-프로세스-찾기">ps·top·kubectl exec가 멈출 때</a><span class="sit-area">Linux 프로세스·커널</span></li><li><a href="#linux-d-state로-멈춘-프로세스-찾기">kill -9로도 안 죽는 프로세스가 있을 때</a><span class="sit-area">Linux 프로세스·커널</span></li><li><a href="#linux-프로세스가-커널-어디서-멈췄는지-보기">멈춘 프로세스가 무엇을 기다리는지 볼 때</a><span class="sit-area">Linux 프로세스·커널</span></li><li><a href="#linux-프로세스-시작-시각-확인">ps 없이 프로세스 시작 시각을 볼 때</a><span class="sit-area">Linux 프로세스·커널</span></li><li><a href="#linux-thptransparent-huge-page-설정-확인">Redis·DB가 지연되거나 khugepaged가 멈췄을 때</a><span class="sit-area">Linux 프로세스·커널</span></li><li><a href="#linux-커널-메시지에서-hung-taskoom-찾기">커널이 남긴 hung task·OOM 경고를 볼 때</a><span class="sit-area">Linux 프로세스·커널</span></li><li><a href="#linux-conntrack-테이블-사용량-확인">UDP 패킷이 간헐적으로 사라질 때</a><span class="sit-area">Linux 프로세스·커널</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>SSH</h3>
+      <ul><li><a href="#ssh-제어-소켓으로-접속-재사용-master-연결">인증 한 번으로 여러 번 원격 명령을 실행할 때</a><span class="sit-area">SSH</span></li><li><a href="#ssh-제어-소켓으로-원격-명령-실행">제어 소켓으로 원격 명령을 실행할 때</a><span class="sit-area">SSH</span></li><li><a href="#ssh-떠-있는-제어-소켓과-접속-대상-매핑-확인">/tmp의 소켓이 어느 서버 것인지 모를 때</a><span class="sit-area">SSH</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>파일 검증</h3>
+      <ul><li><a href="#checksum-공개된-sha256-값으로-파일-검증">다운로드한 파일이 공개된 SHA256 값과 같은지 확인할 때</a><span class="sit-area">체크섬</span></li></ul>
+    </div>
+    <div class="sit">
+      <h3>Java 인증서</h3>
+      <ul><li><a href="#java-truststore에서-ca-이름으로-검색">Java가 <code class="ic">PKIX path building failed</code>를 낼 때 루트 CA가 cacerts에 있는지 볼 때</a><span class="sit-area">Java 인증서 (keytool)</span></li><li><a href="#java-ca-이름으로-alias-찾기">등록된 인증서의 alias를 모를 때</a><span class="sit-area">Java 인증서 (keytool)</span></li><li><a href="#java-특정-alias-등록-여부-확인">인증서를 넣은 뒤 제대로 들어갔는지 볼 때</a><span class="sit-area">Java 인증서 (keytool)</span></li><li><a href="#java-루트-ca-인증서-등록">사설·정부(GPKI) CA를 Java가 신뢰하게 할 때</a><span class="sit-area">Java 인증서 (keytool)</span></li><li><a href="#java-인증서-삭제">잘못 넣은 인증서를 빼거나, CA를 뺀 복사본으로 PKIX 에러를 재현할 때</a><span class="sit-area">Java 인증서 (keytool)</span></li><li><a href="#java-컨테이너-안-jvm에-호스트-인증서-등록">호스트에 있는 인증서를 컨테이너 안 Java에 등록할 때</a><span class="sit-area">Java 인증서 (keytool)</span></li></ul>
+    </div>
+  </div>
+</section>
+  <a class="back" href="#/">← 목차</a>
+  
+<section class="area" id="bulk-edit" data-area="파일 일괄 수정 (ls / grep / sed)">
+  <h2>파일 일괄 수정 (ls / grep / sed)</h2>
+  <article class="cmd" id="bulk-edit-숫자가-섞인-경로를-숫자-순으로-나열" data-search="파일 일괄 수정 (ls / grep / sed) 숫자가 섞인 경로를 숫자 순으로 나열 ls -lv &lt;files&gt; 언제 번호 붙은 파일·디렉터리를 1, 2, 3 순서로 보고 싶을 때 주의 `&lt;files&gt;`에는 `data*/conf/app.yml`처럼 `*`를 넣어 여러 파일을 한 번에 지정한다. `*`는 &quot;아무 글자나 몇 개든&quot;이라는 뜻이고, 셸이 실행 전에 맞는 파일 이름들로 바꿔 넣는다 주의 셸이 `*`를 펼칠 때와 기본 `ls`는 글자 단위 사전순으로 정렬한다. 그래서 첫 글자 `1`이 `2`보다 작다고 보고 `10`이 `2`보다 앞에 온다. `-v`를 주면 `10`을 숫자 10으로 읽어서 2 &lt; 3 &lt; ... &lt; 10 순서가 된다 주의 `-v`는 리눅스 `ls`에만 있다. macos 기본 `ls`엔 없다">
+      <h3>숫자가 섞인 경로를 숫자 순으로 나열</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>ls -lv &lt;files&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>번호 붙은 파일·디렉터리를 1, 2, 3 순서로 보고 싶을 때</li><li class="warn"><span class="lb">주의</span><code class="ic">&lt;files&gt;</code>에는 <code class="ic">data*/conf/app.yml</code>처럼 <code class="ic">*</code>를 넣어 여러 파일을 한 번에 지정한다. <code class="ic">*</code>는 &quot;아무 글자나 몇 개든&quot;이라는 뜻이고, 셸이 실행 전에 맞는 파일 이름들로 바꿔 넣는다</li><li class="warn"><span class="lb">주의</span>셸이 <code class="ic">*</code>를 펼칠 때와 기본 <code class="ic">ls</code>는 글자 단위 사전순으로 정렬한다. 그래서 첫 글자 <code class="ic">1</code>이 <code class="ic">2</code>보다 작다고 보고 <code class="ic">10</code>이 <code class="ic">2</code>보다 앞에 온다. <code class="ic">-v</code>를 주면 <code class="ic">10</code>을 숫자 10으로 읽어서 2 &lt; 3 &lt; ... &lt; 10 순서가 된다</li><li class="warn"><span class="lb">주의</span><code class="ic">-v</code>는 리눅스 <code class="ic">ls</code>에만 있다. macOS 기본 <code class="ic">ls</code>엔 없다</li></ul>
+    </article>
+<article class="cmd" id="bulk-edit-여러-파일을-숫자-순으로-grep" data-search="파일 일괄 수정 (ls / grep / sed) 여러 파일을 숫자 순으로 grep ls -v &lt;files&gt; | xargs grep -h &lt;keyword&gt; 언제 여러 파일을 순서대로 grep할 때. 수정 전후 확인용 주의 `grep &lt;keyword&gt; data*/...`처럼 바로 쓰면 셸이 `*`를 사전순으로 펼쳐서 순서가 꼬인다. `ls -v`로 파일 목록을 먼저 정렬하고, `xargs`가 그 목록을 `grep` 뒤에 붙여서 실행한다 주의 `-h`가 있어야 줄 앞에 파일명이 붙는다 연관 `grep ... | sort -v`로 결과를 정렬해도 되지만, 한 파일에서 여러 줄 걸리면 파일 안의 줄 순서까지 섞인다 연관 다음 줄까지 보려면 `-a1`. 찾을 문자열이 `-`로 시작하면 옵션으로 오해하니 앞에 `--`를 붙인다">
+      <h3>여러 파일을 숫자 순으로 grep</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>ls -v &lt;files&gt; | xargs grep -H &lt;keyword&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>여러 파일을 순서대로 grep할 때. 수정 전후 확인용</li><li class="warn"><span class="lb">주의</span><code class="ic">grep &lt;keyword&gt; data*/...</code>처럼 바로 쓰면 셸이 <code class="ic">*</code>를 사전순으로 펼쳐서 순서가 꼬인다. <code class="ic">ls -v</code>로 파일 목록을 먼저 정렬하고, <code class="ic">xargs</code>가 그 목록을 <code class="ic">grep</code> 뒤에 붙여서 실행한다</li><li class="warn"><span class="lb">주의</span><code class="ic">-H</code>가 있어야 줄 앞에 파일명이 붙는다</li><li class="rel"><span class="lb">연관</span><code class="ic">grep ... | sort -V</code>로 결과를 정렬해도 되지만, 한 파일에서 여러 줄 걸리면 파일 안의 줄 순서까지 섞인다</li><li class="rel"><span class="lb">연관</span>다음 줄까지 보려면 <code class="ic">-A1</code>. 찾을 문자열이 <code class="ic">-</code>로 시작하면 옵션으로 오해하니 앞에 <code class="ic">--</code>를 붙인다</li></ul>
+    </article>
+<article class="cmd" id="bulk-edit-치환-결과-미리보기" data-search="파일 일괄 수정 (ls / grep / sed) 치환 결과 미리보기 sed -n 's/&lt;pattern&gt;//p' &lt;files&gt; 언제 `sed -i`로 고치기 전에 바뀔 줄만 확인할 때 주의 `-n`은 sed가 모든 줄을 출력하는 걸 끄고, 끝의 `p`는 바뀐 줄만 출력한다. 파일은 바뀌지 않는다">
+      <h3>치환 결과 미리보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sed -n 's/&lt;pattern&gt;//p' &lt;files&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">sed -i</code>로 고치기 전에 바뀔 줄만 확인할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">-n</code>은 sed가 모든 줄을 출력하는 걸 끄고, 끝의 <code class="ic">p</code>는 바뀐 줄만 출력한다. 파일은 바뀌지 않는다</li></ul>
+    </article>
+<article class="cmd" id="bulk-edit-여러-파일에서-문자열-일괄-삭제" data-search="파일 일괄 수정 (ls / grep / sed) 여러 파일에서 문자열 일괄 삭제 sudo sed -i.bak 's/&lt;pattern&gt;//' &lt;files&gt; 언제 여러 파일에서 같은 문자열을 한 번에 지울 때 주의 `s/찾을것/바꿀것/`에서 바꿀 것을 비워 두면 삭제가 된다 주의 `&lt;pattern&gt;` 안의 `*`는 파일 지정할 때의 `*`와 뜻이 다르다. 여기선 &quot;바로 앞 글자가 0번 이상 반복&quot;이다. `[0-9]*`는 &quot;숫자가 몇 개든&quot; 주의 sed에서 `|`는 특별한 의미가 없는 그냥 글자라 앞에 `\`를 붙이지 않고 그대로 쓴다 주의 `-i.bak`은 파일을 직접 고치고 원본을 `.bak`으로 남긴다. 실행할 때마다 `.bak`이 덮어써지니, 맨 처음 원본이 필요하면 첫 `.bak`을 다른 이름으로 옮겨둔다 주의 root로 `sed -i`를 실행해도 원래 파일의 소유자와 권한은 그대로 유지된다 연관 쉼표로 나열된 목록에서 항목 하나 지우기 — `s/, &lt;word&gt;\b//`. 앞 쉼표까지 지워야 목록이 깔끔하다. `\b`는 &quot;단어가 여기서 끝남&quot;이라는 뜻이라 `&lt;word&gt;2`처럼 이름이 비슷한 항목은 안 걸린다. 목록 맨 앞 항목은 `&lt;word&gt;, ` 형태라 이 패턴에 안 걸린다">
+      <h3>여러 파일에서 문자열 일괄 삭제</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo sed -i.bak 's/&lt;pattern&gt;//' &lt;files&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>여러 파일에서 같은 문자열을 한 번에 지울 때</li><li class="warn"><span class="lb">주의</span><code class="ic">s/찾을것/바꿀것/</code>에서 바꿀 것을 비워 두면 삭제가 된다</li><li class="warn"><span class="lb">주의</span><code class="ic">&lt;pattern&gt;</code> 안의 <code class="ic">*</code>는 파일 지정할 때의 <code class="ic">*</code>와 뜻이 다르다. 여기선 &quot;바로 앞 글자가 0번 이상 반복&quot;이다. <code class="ic">[0-9]*</code>는 &quot;숫자가 몇 개든&quot;</li><li class="warn"><span class="lb">주의</span>sed에서 <code class="ic">|</code>는 특별한 의미가 없는 그냥 글자라 앞에 <code class="ic">\</code>를 붙이지 않고 그대로 쓴다</li><li class="warn"><span class="lb">주의</span><code class="ic">-i.bak</code>은 파일을 직접 고치고 원본을 <code class="ic">.bak</code>으로 남긴다. 실행할 때마다 <code class="ic">.bak</code>이 덮어써지니, 맨 처음 원본이 필요하면 첫 <code class="ic">.bak</code>을 다른 이름으로 옮겨둔다</li><li class="warn"><span class="lb">주의</span>root로 <code class="ic">sed -i</code>를 실행해도 원래 파일의 소유자와 권한은 그대로 유지된다</li><li class="rel"><span class="lb">연관</span>쉼표로 나열된 목록에서 항목 하나 지우기 — <code class="ic">s/, &lt;word&gt;\b//</code>. 앞 쉼표까지 지워야 목록이 깔끔하다. <code class="ic">\b</code>는 &quot;단어가 여기서 끝남&quot;이라는 뜻이라 <code class="ic">&lt;word&gt;2</code>처럼 이름이 비슷한 항목은 안 걸린다. 목록 맨 앞 항목은 <code class="ic">&lt;word&gt;, </code> 형태라 이 패턴에 안 걸린다</li></ul>
+    </article>
+<article class="cmd" id="bulk-edit-특정-줄과-다음-줄을-함께-삭제" data-search="파일 일괄 수정 (ls / grep / sed) 특정 줄과 다음 줄을 함께 삭제 sudo sed -i.bak '/&lt;first_line&gt;$/{n;/&lt;next_keyword&gt;/d}' &lt;files&gt; 언제 yaml 리스트 항목처럼 두 줄짜리 블록을 빼낼 때 주의 `&lt;first_line&gt;`에 맞는 줄을 찾으면 `n`이 다음 줄을 읽어 붙인다. 붙인 두 줄에 `&lt;next_keyword&gt;`가 있을 때만 `d`로 둘 다 지운다. 다음 줄이 예상과 다르면 지우지 않는다 주의 `$`는 &quot;줄 끝&quot;이라는 뜻이다. 붙여야 `crawler2`처럼 뒤에 글자가 더 있는 줄이 안 걸린다 연관 미리보기는 `-i` 없이 돌려서 원본과 비교 — `sed '&lt;script&gt;' &lt;file&gt; | diff &lt;file&gt; -` (`-`는 앞 명령의 출력을 받는다는 뜻)">
+      <h3>특정 줄과 다음 줄을 함께 삭제</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo sed -i.bak '/&lt;first_line&gt;$/{N;/&lt;next_keyword&gt;/d}' &lt;files&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>YAML 리스트 항목처럼 두 줄짜리 블록을 빼낼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">&lt;first_line&gt;</code>에 맞는 줄을 찾으면 <code class="ic">N</code>이 다음 줄을 읽어 붙인다. 붙인 두 줄에 <code class="ic">&lt;next_keyword&gt;</code>가 있을 때만 <code class="ic">d</code>로 둘 다 지운다. 다음 줄이 예상과 다르면 지우지 않는다</li><li class="warn"><span class="lb">주의</span><code class="ic">$</code>는 &quot;줄 끝&quot;이라는 뜻이다. 붙여야 <code class="ic">crawler2</code>처럼 뒤에 글자가 더 있는 줄이 안 걸린다</li><li class="rel"><span class="lb">연관</span>미리보기는 <code class="ic">-i</code> 없이 돌려서 원본과 비교 — <code class="ic">sed '&lt;script&gt;' &lt;file&gt; | diff &lt;file&gt; -</code> (<code class="ic">-</code>는 앞 명령의 출력을 받는다는 뜻)</li></ul>
+    </article>
+<article class="cmd" id="bulk-edit-sed-백업-파일-일괄-삭제" data-search="파일 일괄 수정 (ls / grep / sed) sed 백업 파일 일괄 삭제 sudo rm -f &lt;files&gt;.bak 언제 `sed -i.bak` 결과를 확인한 뒤 백업을 정리할 때 주의 먼저 `ls -lv &lt;files&gt;.bak`로 목록을 확인한다 연관 위치가 흩어져 있으면 `find &lt;dir&gt; -name '&lt;name&gt;.bak' -print`로 확인한 뒤 `-print`를 `-delete`로 바꿔 지운다">
+      <h3>sed 백업 파일 일괄 삭제</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo rm -f &lt;files&gt;.bak</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">sed -i.bak</code> 결과를 확인한 뒤 백업을 정리할 때</li><li class="warn"><span class="lb">주의</span>먼저 <code class="ic">ls -lv &lt;files&gt;.bak</code>로 목록을 확인한다</li><li class="rel"><span class="lb">연관</span>위치가 흩어져 있으면 <code class="ic">find &lt;dir&gt; -name '&lt;name&gt;.bak' -print</code>로 확인한 뒤 <code class="ic">-print</code>를 <code class="ic">-delete</code>로 바꿔 지운다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="checksum" data-area="체크섬">
+  <h2>체크섬</h2>
+  <article class="cmd" id="checksum-공개된-sha256-값으로-파일-검증" data-search="체크섬 공개된 sha256 값으로 파일 검증 echo &quot;&lt;sha256&gt;  &lt;file&gt;&quot; | sha256sum -c - 언제 다운로드한 파일(jdk 압축 파일, 설치 파일 등)이 배포처가 공개한 sha256 값과 같은지 확인할 때. 체크섬 파일 없이 해시 문자열만 받은 경우에 쓴다 주의 sha256은 파일 내용으로 계산한 64자리 값이다. 1바이트만 달라도 값이 완전히 바뀌므로, 값이 같으면 받는 도중 깨지거나 바뀌지 않았다고 볼 수 있다 주의 `-c`는 입력을 `해시  파일명` 목록으로 읽고, 그 파일을 다시 계산해 비교한다. 끝의 `-`는 목록을 파일 대신 표준입력에서 읽으라는 뜻이다. 결과는 `&lt;file&gt;: ok` 또는 `failed`로 나온다 주의 해시와 파일명 사이는 **공백 2칸**이 표준 형식이고, 반드시 한 따옴표 안에 넣는다. `echo &quot;&lt;sha256&gt;&quot; &lt;file&gt;`처럼 따옴표 밖에 파일명을 두면 공백이 1칸이 된다. gnu coreutils는 1칸도 받아주지만 alpine 같은 busybox 환경에서는 형식 오류가 날 수 있다 주의 `&lt;file&gt;`은 현재 디렉터리 기준 경로다. 파일이 있는 디렉터리에서 실행한다 주의 macos에 `sha256sum`이 없으면 `shasum -a 256 -c -`로 바꾼다. `-a 256`을 빼면 sha-1로 계산된다 주의 체크섬은 파일 손상만 잡는다. 해시값과 파일을 같은 곳에서 받았다면 둘 다 바꿔치기된 경우는 잡지 못한다">
+      <h3>공개된 SHA256 값으로 파일 검증</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>echo &quot;&lt;sha256&gt;  &lt;file&gt;&quot; | sha256sum -c -</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>다운로드한 파일(JDK 압축 파일, 설치 파일 등)이 배포처가 공개한 SHA256 값과 같은지 확인할 때. 체크섬 파일 없이 해시 문자열만 받은 경우에 쓴다</li><li class="warn"><span class="lb">주의</span>SHA256은 파일 내용으로 계산한 64자리 값이다. 1바이트만 달라도 값이 완전히 바뀌므로, 값이 같으면 받는 도중 깨지거나 바뀌지 않았다고 볼 수 있다</li><li class="warn"><span class="lb">주의</span><code class="ic">-c</code>는 입력을 <code class="ic">해시  파일명</code> 목록으로 읽고, 그 파일을 다시 계산해 비교한다. 끝의 <code class="ic">-</code>는 목록을 파일 대신 표준입력에서 읽으라는 뜻이다. 결과는 <code class="ic">&lt;file&gt;: OK</code> 또는 <code class="ic">FAILED</code>로 나온다</li><li class="warn"><span class="lb">주의</span>해시와 파일명 사이는 <strong>공백 2칸</strong>이 표준 형식이고, 반드시 한 따옴표 안에 넣는다. <code class="ic">echo &quot;&lt;sha256&gt;&quot; &lt;file&gt;</code>처럼 따옴표 밖에 파일명을 두면 공백이 1칸이 된다. GNU coreutils는 1칸도 받아주지만 Alpine 같은 busybox 환경에서는 형식 오류가 날 수 있다</li><li class="warn"><span class="lb">주의</span><code class="ic">&lt;file&gt;</code>은 현재 디렉터리 기준 경로다. 파일이 있는 디렉터리에서 실행한다</li><li class="warn"><span class="lb">주의</span>macOS에 <code class="ic">sha256sum</code>이 없으면 <code class="ic">shasum -a 256 -c -</code>로 바꾼다. <code class="ic">-a 256</code>을 빼면 SHA-1로 계산된다</li><li class="warn"><span class="lb">주의</span>체크섬은 파일 손상만 잡는다. 해시값과 파일을 같은 곳에서 받았다면 둘 다 바꿔치기된 경우는 잡지 못한다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="dns" data-area="DNS (노드)">
+  <h2>DNS (노드)</h2>
+  <article class="cmd" id="dns-노드가-실제로-쓰는-dns-서버-확인" data-search="dns (노드) 노드가 실제로 쓰는 dns 서버 확인 ls -l /etc/resolv.conf; cat /etc/resolv.conf 언제 노드나 pod에서 dns가 안 될 때 가장 먼저. nameserver와 search 도메인을 확인한다 주의 `ls -l`로 심볼릭 링크인지, 언제 다시 생성됐는지(수정 시각) 같이 본다. 첫 줄 주석(`# generated by networkmanager`)으로 누가 관리하는 파일인지 알 수 있고, 직접 고쳐도 그 서비스가 덮어쓴다 주의 `search` 줄에 ip 주소가 있으면 설정 실수다. 보통 보조 dns를 search 도메인 칸에 잘못 넣은 경우다. 이러면 nameserver가 하나뿐이라 예비 서버가 없고, 모든 이름 뒤에 그 ip를 붙인 쓸모없는 질의가 나간다 주의 kubernetes에서는 노드의 search 도메인이 pod의 resolv.conf에도 그대로 붙는다 연관 networkmanager 쪽 원래 설정은 `nmcli -g ipv4.dns,ipv4.dns-search con show &lt;connection&gt;`">
+      <h3>노드가 실제로 쓰는 DNS 서버 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>ls -l /etc/resolv.conf; cat /etc/resolv.conf</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>노드나 Pod에서 DNS가 안 될 때 가장 먼저. nameserver와 search 도메인을 확인한다</li><li class="warn"><span class="lb">주의</span><code class="ic">ls -l</code>로 심볼릭 링크인지, 언제 다시 생성됐는지(수정 시각) 같이 본다. 첫 줄 주석(<code class="ic"># Generated by NetworkManager</code>)으로 누가 관리하는 파일인지 알 수 있고, 직접 고쳐도 그 서비스가 덮어쓴다</li><li class="warn"><span class="lb">주의</span><code class="ic">search</code> 줄에 IP 주소가 있으면 설정 실수다. 보통 보조 DNS를 search 도메인 칸에 잘못 넣은 경우다. 이러면 nameserver가 하나뿐이라 예비 서버가 없고, 모든 이름 뒤에 그 IP를 붙인 쓸모없는 질의가 나간다</li><li class="warn"><span class="lb">주의</span>Kubernetes에서는 노드의 search 도메인이 Pod의 resolv.conf에도 그대로 붙는다</li><li class="rel"><span class="lb">연관</span>NetworkManager 쪽 원래 설정은 <code class="ic">nmcli -g ipv4.dns,ipv4.dns-search con show &lt;connection&gt;</code></li></ul>
+    </article>
+<article class="cmd" id="dns-networkmanager-연결의-dns-설정-확인" data-search="dns (노드) networkmanager 연결의 dns 설정 확인 nmcli -t -f name,device con show --active
+nmcli -g ipv4.method,ipv4.dns,ipv4.dns-search,ipv4.ignore-auto-dns con show &lt;connection&gt; 언제 resolv.conf가 왜 그렇게 생성됐는지 원래 설정을 볼 때 주의 `-t`는 콜론으로 구분한 짧은 출력, `-f`는 보여줄 열을 고른다. `-g`는 지정한 값만 줄마다 하나씩 뽑는다 주의 `ipv4.dns`는 nameserver, `ipv4.dns-search`는 search 도메인이다. `ignore-auto-dns`가 no면 dhcp로 받은 dns도 섞인다 연관 rhel 8 이하에서는 같은 내용이 `/etc/sysconfig/network-scripts/ifcfg-&lt;device&gt;`의 `dns1`, `dns2`, `domain`에 있다. `grep -h -ie 'dns|domain' /etc/sysconfig/network-scripts/ifcfg-*`">
+      <h3>NetworkManager 연결의 DNS 설정 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>nmcli -t -f NAME,DEVICE con show --active
+nmcli -g ipv4.method,ipv4.dns,ipv4.dns-search,ipv4.ignore-auto-dns con show &lt;connection&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>resolv.conf가 왜 그렇게 생성됐는지 원래 설정을 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">-t</code>는 콜론으로 구분한 짧은 출력, <code class="ic">-f</code>는 보여줄 열을 고른다. <code class="ic">-g</code>는 지정한 값만 줄마다 하나씩 뽑는다</li><li class="warn"><span class="lb">주의</span><code class="ic">ipv4.dns</code>는 nameserver, <code class="ic">ipv4.dns-search</code>는 search 도메인이다. <code class="ic">ignore-auto-dns</code>가 no면 DHCP로 받은 DNS도 섞인다</li><li class="rel"><span class="lb">연관</span>RHEL 8 이하에서는 같은 내용이 <code class="ic">/etc/sysconfig/network-scripts/ifcfg-&lt;device&gt;</code>의 <code class="ic">DNS1</code>, <code class="ic">DNS2</code>, <code class="ic">DOMAIN</code>에 있다. <code class="ic">grep -H -iE 'DNS|DOMAIN' /etc/sysconfig/network-scripts/ifcfg-*</code></li></ul>
+    </article>
+<article class="cmd" id="dns-특정-목적지로-가는-경로-확인" data-search="dns (노드) 특정 목적지로 가는 경로 확인 ip route get &lt;ip&gt; 언제 업스트림 dns나 외부 서버로 패킷이 어느 인터페이스, 어느 게이트웨이로 나가는지 볼 때 주의 실제 패킷을 보내지 않고 라우팅 테이블에서 고른 결과만 보여준다. `src`가 이 경로로 나갈 때 쓰는 출발지 ip다">
+      <h3>특정 목적지로 가는 경로 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>ip route get &lt;ip&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>업스트림 DNS나 외부 서버로 패킷이 어느 인터페이스, 어느 게이트웨이로 나가는지 볼 때</li><li class="warn"><span class="lb">주의</span>실제 패킷을 보내지 않고 라우팅 테이블에서 고른 결과만 보여준다. <code class="ic">src</code>가 이 경로로 나갈 때 쓰는 출발지 IP다</li></ul>
+    </article>
+<article class="cmd" id="dns-dig-없이-dns-응답률-측정" data-search="dns (노드) dig 없이 dns 응답률 측정 python3 - &lt;&lt;'py'
+import socket, struct, random, time
+server, name, n = &quot;&lt;dns-server&gt;&quot;, &quot;&lt;name&gt;&quot;, 120
+ok = fail = 0; lat = []
+for i in range(n):
+    q = struct.pack(&quot;&gt;hhhhhh&quot;, random.randint(0, 65535), 0x0100, 1, 0, 0, 0) \
+        + b&quot;&quot;.join(bytes([len(p)]) + p.encode() for p in name.split(&quot;.&quot;)) + b&quot;\0&quot; + struct.pack(&quot;&gt;hh&quot;, 1, 1)
+    s = socket.socket(socket.af_inet, socket.sock_dgram); s.settimeout(2); t = time.time()
+    s.sendto(q, (server, 53))
+    try:
+        d, _ = s.recvfrom(4096); ok += 1; lat.append(time.time() - t)
+    except exception:
+        fail += 1; print(&quot;timeout&quot;, time.strftime(&quot;%h:%m:%s&quot;))
+    s.close(); time.sleep(0.4)
+lat.sort(); print(&quot;ok=%d fail=%d p50=%.0fms max=%.0fms&quot; % (ok, fail, lat[len(lat)//2]*1000, lat[-1]*1000))
+py 언제 노드에 dig, nslookup이 없을 때(bind-utils 미설치) dns 서버가 응답하는지, 간헐적으로 응답을 놓치는지 측정할 때 주의 표준 라이브러리만 쓰는 udp dns 질의(a 레코드)다. 응답이 오기만 하면 성공으로 센다. nxdomain도 응답이 온 것이므로 성공이다 주의 한 번 질의해서 성공하는 것과 계속 성공하는 것은 다르다. 간헐 장애는 여러 번 반복해야 보인다. `n`과 `sleep` 간격을 조절한다 주의 `settimeout(2)`보다 늦은 응답은 실패로 센다">
+      <h3>dig 없이 DNS 응답률 측정</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>python3 - &lt;&lt;'PY'
+import socket, struct, random, time
+server, name, n = &quot;&lt;dns-server&gt;&quot;, &quot;&lt;name&gt;&quot;, 120
+ok = fail = 0; lat = []
+for i in range(n):
+    q = struct.pack(&quot;&gt;HHHHHH&quot;, random.randint(0, 65535), 0x0100, 1, 0, 0, 0) \
+        + b&quot;&quot;.join(bytes([len(p)]) + p.encode() for p in name.split(&quot;.&quot;)) + b&quot;\0&quot; + struct.pack(&quot;&gt;HH&quot;, 1, 1)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(2); t = time.time()
+    s.sendto(q, (server, 53))
+    try:
+        d, _ = s.recvfrom(4096); ok += 1; lat.append(time.time() - t)
+    except Exception:
+        fail += 1; print(&quot;timeout&quot;, time.strftime(&quot;%H:%M:%S&quot;))
+    s.close(); time.sleep(0.4)
+lat.sort(); print(&quot;ok=%d fail=%d p50=%.0fms max=%.0fms&quot; % (ok, fail, lat[len(lat)//2]*1000, lat[-1]*1000))
+PY</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>노드에 dig, nslookup이 없을 때(bind-utils 미설치) DNS 서버가 응답하는지, 간헐적으로 응답을 놓치는지 측정할 때</li><li class="warn"><span class="lb">주의</span>표준 라이브러리만 쓰는 UDP DNS 질의(A 레코드)다. 응답이 오기만 하면 성공으로 센다. NXDOMAIN도 응답이 온 것이므로 성공이다</li><li class="warn"><span class="lb">주의</span>한 번 질의해서 성공하는 것과 계속 성공하는 것은 다르다. 간헐 장애는 여러 번 반복해야 보인다. <code class="ic">n</code>과 <code class="ic">sleep</code> 간격을 조절한다</li><li class="warn"><span class="lb">주의</span><code class="ic">settimeout(2)</code>보다 늦은 응답은 실패로 센다</li></ul>
+    </article>
+<article class="cmd" id="dns-resolvconf-변경-이력-보기" data-search="dns (노드) resolv.conf 변경 이력 보기 sudo journalctl -u networkmanager --since '&lt;since&gt;' --until '&lt;until&gt;' --no-pager | grep -ie 'dns|dhcp|resolv' 언제 resolv.conf가 언제, 무엇 때문에 다시 생성됐는지 따라갈 때 주의 시간 범위 지정과 `--no-pager`는 [systemd](systemd.md#서비스-로그를-시간-범위로-잘라내기)와 같다">
+      <h3>resolv.conf 변경 이력 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo journalctl -u NetworkManager --since '&lt;since&gt;' --until '&lt;until&gt;' --no-pager | grep -iE 'dns|dhcp|resolv'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>resolv.conf가 언제, 무엇 때문에 다시 생성됐는지 따라갈 때</li><li class="warn"><span class="lb">주의</span>시간 범위 지정과 <code class="ic">--no-pager</code>는 [systemd](systemd.md#서비스-로그를-시간-범위로-잘라내기)와 같다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="docker" data-area="Docker">
+  <h2>Docker</h2>
+  <article class="cmd" id="docker-컨테이너-로그-설정-확인" data-search="docker 컨테이너 로그 설정 확인 sudo docker inspect &lt;container&gt; --format '{{.hostconfig.logconfig}}' 언제 컨테이너 로그가 로테이션되고 있는지 볼 때 주의 `{json-file map[]}`처럼 `map[]`이 비어 있으면 로테이션 설정이 없는 것이다. 이 경우 로그가 끝없이 커진다 주의 데몬 설정(`daemon.json`)이 아니라 **컨테이너에 실제로 적용된 값**을 본다. 컨테이너는 만들어질 때의 설정을 계속 쓰므로 두 값이 다를 수 있다">
+      <h3>컨테이너 로그 설정 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker inspect &lt;container&gt; --format '{{.HostConfig.LogConfig}}'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>컨테이너 로그가 로테이션되고 있는지 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">{json-file map[]}</code>처럼 <code class="ic">map[]</code>이 비어 있으면 로테이션 설정이 없는 것이다. 이 경우 로그가 끝없이 커진다</li><li class="warn"><span class="lb">주의</span>데몬 설정(<code class="ic">daemon.json</code>)이 아니라 <strong>컨테이너에 실제로 적용된 값</strong>을 본다. 컨테이너는 만들어질 때의 설정을 계속 쓰므로 두 값이 다를 수 있다</li></ul>
+    </article>
+<article class="cmd" id="docker-컨테이너-로그-파일-크기-확인" data-search="docker 컨테이너 로그 파일 크기 확인 sudo sh -c 'ls -lh $(docker inspect &lt;container&gt; --format {{.logpath}})' 언제 `docker logs`가 느리거나, `/var/lib/docker`가 커졌거나, dockerd cpu가 높을 때 주의 `.logpath`는 그 컨테이너의 stdout 로그 파일 경로다. 보통 `/var/lib/docker/containers/&lt;id&gt;/&lt;id&gt;-json.log` 주의 이 경로는 root만 읽을 수 있다. 그래서 `$(...)` 치환까지 root 권한으로 돌도록 `sudo sh -c '...'`로 감싼다">
+      <h3>컨테이너 로그 파일 크기 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo sh -c 'ls -lh $(docker inspect &lt;container&gt; --format {{.LogPath}})'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">docker logs</code>가 느리거나, <code class="ic">/var/lib/docker</code>가 커졌거나, dockerd CPU가 높을 때</li><li class="warn"><span class="lb">주의</span><code class="ic">.LogPath</code>는 그 컨테이너의 stdout 로그 파일 경로다. 보통 <code class="ic">/var/lib/docker/containers/&lt;id&gt;/&lt;id&gt;-json.log</code></li><li class="warn"><span class="lb">주의</span>이 경로는 root만 읽을 수 있다. 그래서 <code class="ic">$(...)</code> 치환까지 root 권한으로 돌도록 <code class="ic">sudo sh -c '...'</code>로 감싼다</li></ul>
+    </article>
+<article class="cmd" id="docker-컨테이너-환경변수-확인" data-search="docker 컨테이너 환경변수 확인 sudo docker inspect &lt;container&gt; --format '{{range .config.env}}{{println .}}{{end}}' 언제 compose 파일을 찾지 않고, 실행 중인 컨테이너에 실제로 들어간 환경변수를 볼 때 (예: gitlab의 `gitlab_omnibus_config`) 주의 `range ... println`은 변수 하나를 한 줄로 출력한다. 여러 줄짜리 값은 그대로 여러 줄로 나온다 주의 비밀번호나 키가 그대로 출력된다. 공유할 때는 가린다">
+      <h3>컨테이너 환경변수 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker inspect &lt;container&gt; --format '{{range .Config.Env}}{{println .}}{{end}}'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>compose 파일을 찾지 않고, 실행 중인 컨테이너에 실제로 들어간 환경변수를 볼 때 (예: GitLab의 <code class="ic">GITLAB_OMNIBUS_CONFIG</code>)</li><li class="warn"><span class="lb">주의</span><code class="ic">range ... println</code>은 변수 하나를 한 줄로 출력한다. 여러 줄짜리 값은 그대로 여러 줄로 나온다</li><li class="warn"><span class="lb">주의</span>비밀번호나 키가 그대로 출력된다. 공유할 때는 가린다</li></ul>
+    </article>
+<article class="cmd" id="docker-daemonjson-문법-검사" data-search="docker daemon.json 문법 검사 sudo python3 -m json.tool /etc/docker/daemon.json 언제 `daemon.json`을 고친 뒤 dockerd를 재시작하기 전에 주의 문법이 틀린 채로 재시작하면 dockerd가 아예 뜨지 않는다. 그러면 모든 컨테이너가 내려간 상태가 된다 주의 `json.tool`은 json을 읽어서 다시 예쁘게 출력한다. 오류가 있으면 줄 번호와 함께 실패한다. 파일은 바뀌지 않는다">
+      <h3>daemon.json 문법 검사</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo python3 -m json.tool /etc/docker/daemon.json</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">daemon.json</code>을 고친 뒤 dockerd를 재시작하기 전에</li><li class="warn"><span class="lb">주의</span>문법이 틀린 채로 재시작하면 dockerd가 아예 뜨지 않는다. 그러면 모든 컨테이너가 내려간 상태가 된다</li><li class="warn"><span class="lb">주의</span><code class="ic">json.tool</code>은 JSON을 읽어서 다시 예쁘게 출력한다. 오류가 있으면 줄 번호와 함께 실패한다. 파일은 바뀌지 않는다</li></ul>
+    </article>
+<article class="cmd" id="docker-daemonjson-변경-반영-dockerd-재시작" data-search="docker daemon.json 변경 반영 (dockerd 재시작) sudo systemctl restart docker 언제 `daemon.json`(로그 기본값 등)을 바꾼 뒤 주의 `live-restore`가 꺼져 있으면 **서버의 모든 컨테이너가 같이 재시작된다** 주의 `restart: always`여도 사용자가 직접 `docker stop`한 컨테이너는 자동으로 다시 뜨지 않는다 주의 로그 기본값(`log-driver`, `log-opts`)은 **이후에 새로 만드는 컨테이너에만** 적용된다. 기존 컨테이너는 아래처럼 다시 만들어야 한다">
+      <h3>daemon.json 변경 반영 (dockerd 재시작)</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo systemctl restart docker</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">daemon.json</code>(로그 기본값 등)을 바꾼 뒤</li><li class="warn"><span class="lb">주의</span><code class="ic">live-restore</code>가 꺼져 있으면 <strong>서버의 모든 컨테이너가 같이 재시작된다</strong></li><li class="warn"><span class="lb">주의</span><code class="ic">restart: always</code>여도 사용자가 직접 <code class="ic">docker stop</code>한 컨테이너는 자동으로 다시 뜨지 않는다</li><li class="warn"><span class="lb">주의</span>로그 기본값(<code class="ic">log-driver</code>, <code class="ic">log-opts</code>)은 <strong>이후에 새로 만드는 컨테이너에만</strong> 적용된다. 기존 컨테이너는 아래처럼 다시 만들어야 한다</li></ul>
+    </article>
+<article class="cmd" id="docker-compose-컨테이너-재생성" data-search="docker compose 컨테이너 재생성 cd &lt;compose-dir&gt; &amp;&amp; sudo docker compose down &amp;&amp; sudo docker compose up -d 언제 환경변수나 로그 설정처럼 컨테이너를 만들 때 고정되는 값을 바꾼 뒤 주의 `down`은 컨테이너와 네트워크를 삭제한다. 볼륨에 둔 데이터는 남는다. 컨테이너 stdout 로그 파일은 같이 삭제된다 주의 volumes가 `$var/path` 같은 변수 형태면 `sudo`가 환경변수를 넘기지 않아 빈 경로가 될 수 있다. 재생성 전에 `sudo docker compose config`로 실제로 풀린 경로를 확인한다. compose는 같은 디렉터리의 `.env`를 자동으로 읽는다">
+      <h3>compose 컨테이너 재생성</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>cd &lt;compose-dir&gt; &amp;&amp; sudo docker compose down &amp;&amp; sudo docker compose up -d</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>환경변수나 로그 설정처럼 컨테이너를 만들 때 고정되는 값을 바꾼 뒤</li><li class="warn"><span class="lb">주의</span><code class="ic">down</code>은 컨테이너와 네트워크를 삭제한다. 볼륨에 둔 데이터는 남는다. 컨테이너 stdout 로그 파일은 같이 삭제된다</li><li class="warn"><span class="lb">주의</span>volumes가 <code class="ic">$VAR/path</code> 같은 변수 형태면 <code class="ic">sudo</code>가 환경변수를 넘기지 않아 빈 경로가 될 수 있다. 재생성 전에 <code class="ic">sudo docker compose config</code>로 실제로 풀린 경로를 확인한다. compose는 같은 디렉터리의 <code class="ic">.env</code>를 자동으로 읽는다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="gitlab" data-area="GitLab (Omnibus / Docker)">
+  <h2>GitLab (Omnibus / Docker)</h2>
+  <article class="cmd" id="gitlab-서비스-구성요소-상태-확인" data-search="gitlab (omnibus / docker) 서비스 구성요소 상태 확인 sudo docker exec &lt;container&gt; gitlab-ctl status 언제 gitlab 안의 puma, sidekiq, gitaly, postgresql 같은 구성요소가 모두 떠 있는지, 언제 재시작됐는지 볼 때 주의 줄마다 `run: &lt;서비스&gt;: (pid n) &lt;초&gt;s` 형태로 나온다. 끝의 숫자는 그 서비스가 떠 있은 시간(초)이다. 한 서비스만 유독 작으면 최근에 죽었다가 다시 뜬 것이다 주의 docker가 아니라 서버에 직접 설치했다면 `sudo docker exec &lt;container&gt;`를 빼고 `sudo gitlab-ctl status`로 실행한다. 이 파일의 다른 명령도 같다">
+      <h3>서비스 구성요소 상태 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-ctl status</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>GitLab 안의 puma, sidekiq, gitaly, postgresql 같은 구성요소가 모두 떠 있는지, 언제 재시작됐는지 볼 때</li><li class="warn"><span class="lb">주의</span>줄마다 <code class="ic">run: &lt;서비스&gt;: (pid N) &lt;초&gt;s</code> 형태로 나온다. 끝의 숫자는 그 서비스가 떠 있은 시간(초)이다. 한 서비스만 유독 작으면 최근에 죽었다가 다시 뜬 것이다</li><li class="warn"><span class="lb">주의</span>Docker가 아니라 서버에 직접 설치했다면 <code class="ic">sudo docker exec &lt;container&gt;</code>를 빼고 <code class="ic">sudo gitlab-ctl status</code>로 실행한다. 이 파일의 다른 명령도 같다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-실제-적용된-설정-값-보기" data-search="gitlab (omnibus / docker) 실제 적용된 설정 값 보기 sudo docker exec &lt;container&gt; gitlab-ctl show-config 2&gt;/dev/null | grep -a3 -e '&quot;(&lt;key&gt;)&quot;' 언제 `gitlab.rb`와 `gitlab_omnibus_config` 환경변수를 합쳐서 최종적으로 어떤 값이 적용됐는지 볼 때 주의 설정 도구(chef)를 실제로 적용하지 않고 계산만 해서 json으로 출력한다. 출력 끝의 `converging 0 resources`는 아무것도 바꾸지 않았다는 뜻이다. 실행에 10초 정도 걸린다 주의 사용자가 지정한 값과 일부 계산된 값만 나온다. 기본값은 대부분 빠지므로, 출력에 없다고 해서 꺼져 있다는 뜻은 아니다 주의 출력에 비밀번호나 시크릿이 섞일 수 있다. 통째로 공유하지 않는다 주의 출력 앞뒤에 json이 아닌 로그 줄이 붙는다. 그대로 json 파서에 넣으면 `extra data` 에러가 난다 연관 rails가 실행될 때 채우는 기본값은 여기서 안 보인다. 아래 &quot;rails 설정 값 직접 조회&quot;로 확인한다">
+      <h3>실제 적용된 설정 값 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-ctl show-config 2&gt;/dev/null | grep -A3 -E '&quot;(&lt;key&gt;)&quot;'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">gitlab.rb</code>와 <code class="ic">GITLAB_OMNIBUS_CONFIG</code> 환경변수를 합쳐서 최종적으로 어떤 값이 적용됐는지 볼 때</li><li class="warn"><span class="lb">주의</span>설정 도구(Chef)를 실제로 적용하지 않고 계산만 해서 JSON으로 출력한다. 출력 끝의 <code class="ic">Converging 0 resources</code>는 아무것도 바꾸지 않았다는 뜻이다. 실행에 10초 정도 걸린다</li><li class="warn"><span class="lb">주의</span>사용자가 지정한 값과 일부 계산된 값만 나온다. 기본값은 대부분 빠지므로, 출력에 없다고 해서 꺼져 있다는 뜻은 아니다</li><li class="warn"><span class="lb">주의</span>출력에 비밀번호나 시크릿이 섞일 수 있다. 통째로 공유하지 않는다</li><li class="warn"><span class="lb">주의</span>출력 앞뒤에 JSON이 아닌 로그 줄이 붙는다. 그대로 JSON 파서에 넣으면 <code class="ic">Extra data</code> 에러가 난다</li><li class="rel"><span class="lb">연관</span>Rails가 실행될 때 채우는 기본값은 여기서 안 보인다. 아래 &quot;Rails 설정 값 직접 조회&quot;로 확인한다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-show-config에-안-보이는-기본값-추적" data-search="gitlab (omnibus / docker) show-config에 안 보이는 기본값 추적 sudo docker exec &lt;container&gt; grep -n &quot;&lt;key&gt;&quot; /opt/gitlab/embedded/cookbooks/gitlab/attributes/default.rb
+sudo docker exec &lt;container&gt; grep -n &quot;&lt;key&gt;&quot; /var/opt/gitlab/gitlab-rails/etc/gitlab.yml
+sudo docker exec &lt;container&gt; grep -n &quot;&lt;key&gt;&quot; /opt/gitlab/embedded/service/gitlab-rails/config/initializers/1_settings.rb 언제 설정하지 않은 값이 실제로 어떻게 정해지는지 단계별로 따라갈 때 주의 첫 줄은 omnibus 기본값, 둘째 줄은 reconfigure가 만든 rails 설정 파일, 셋째 줄은 rails 초기화 코드다. 앞 단계에서 값이 비어 있으면 뒤 단계에서 채워지는 경우가 있다 (예: `email_enabled`는 비어 있으면 rails가 true로 채운다) 주의 `default.rb`의 키 이름과 `gitlab.yml`의 키 이름이 다를 수 있다 (예: `gitlab_email_enabled` → `email_enabled`). 짧은 이름으로 검색하는 게 낫다">
+      <h3>show-config에 안 보이는 기본값 추적</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; grep -n &quot;&lt;key&gt;&quot; /opt/gitlab/embedded/cookbooks/gitlab/attributes/default.rb
+sudo docker exec &lt;container&gt; grep -n &quot;&lt;key&gt;&quot; /var/opt/gitlab/gitlab-rails/etc/gitlab.yml
+sudo docker exec &lt;container&gt; grep -n &quot;&lt;key&gt;&quot; /opt/gitlab/embedded/service/gitlab-rails/config/initializers/1_settings.rb</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>설정하지 않은 값이 실제로 어떻게 정해지는지 단계별로 따라갈 때</li><li class="warn"><span class="lb">주의</span>첫 줄은 Omnibus 기본값, 둘째 줄은 reconfigure가 만든 Rails 설정 파일, 셋째 줄은 Rails 초기화 코드다. 앞 단계에서 값이 비어 있으면 뒤 단계에서 채워지는 경우가 있다 (예: <code class="ic">email_enabled</code>는 비어 있으면 Rails가 true로 채운다)</li><li class="warn"><span class="lb">주의</span><code class="ic">default.rb</code>의 키 이름과 <code class="ic">gitlab.yml</code>의 키 이름이 다를 수 있다 (예: <code class="ic">gitlab_email_enabled</code> → <code class="ic">email_enabled</code>). 짧은 이름으로 검색하는 게 낫다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-rails-설정-값-직접-조회" data-search="gitlab (omnibus / docker) rails 설정 값 직접 조회 sudo docker exec &lt;container&gt; gitlab-rails runner 'puts gitlab.config.gitlab.email_enabled; puts actionmailer::base.delivery_method' 언제 메일이 실제로 켜져 있는지, 어떤 방식(smtp/sendmail)으로 나가는지처럼 최종 적용 값을 확인할 때 주의 `gitlab-rails runner '&lt;루비 코드&gt;'`는 gitlab 애플리케이션을 불러온 뒤 코드를 실행하고 끝난다. 콘솔을 열지 않고 값만 볼 때 쓴다. 로딩 때문에 30초 정도 걸린다 주의 `smtp_enable`은 **어떻게** 보낼지, `gitlab_email_enabled`는 **보낼지 말지**를 정한다. 메일을 끄려면 `gitlab_email_enabled = false`다. `smtp_enable = false`는 기본값이라 넣어도 바뀌는 게 없다 연관 smtp를 켜지 않으면 발송 방식이 `sendmail`이 된다. 공식 docker 이미지에는 sendmail이 없어서 메일 잡이 `errno::enoent`로 실패한다">
+      <h3>Rails 설정 값 직접 조회</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-rails runner 'puts Gitlab.config.gitlab.email_enabled; puts ActionMailer::Base.delivery_method'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>메일이 실제로 켜져 있는지, 어떤 방식(smtp/sendmail)으로 나가는지처럼 최종 적용 값을 확인할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">gitlab-rails runner '&lt;루비 코드&gt;'</code>는 GitLab 애플리케이션을 불러온 뒤 코드를 실행하고 끝난다. 콘솔을 열지 않고 값만 볼 때 쓴다. 로딩 때문에 30초 정도 걸린다</li><li class="warn"><span class="lb">주의</span><code class="ic">smtp_enable</code>은 <strong>어떻게</strong> 보낼지, <code class="ic">gitlab_email_enabled</code>는 <strong>보낼지 말지</strong>를 정한다. 메일을 끄려면 <code class="ic">gitlab_email_enabled = false</code>다. <code class="ic">smtp_enable = false</code>는 기본값이라 넣어도 바뀌는 게 없다</li><li class="rel"><span class="lb">연관</span>SMTP를 켜지 않으면 발송 방식이 <code class="ic">sendmail</code>이 된다. 공식 Docker 이미지에는 sendmail이 없어서 메일 잡이 <code class="ic">Errno::ENOENT</code>로 실패한다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-sidekiq-사용률과-큐-대기-시간-확인" data-search="gitlab (omnibus / docker) sidekiq 사용률과 큐 대기 시간 확인 sudo docker exec &lt;container&gt; gitlab-rails runner 'require &quot;sidekiq/api&quot;; sidekiq::processset.new.each { |p| puts &quot;concurrency=#{p[&quot;concurrency&quot;]} busy=#{p[&quot;busy&quot;]}&quot; }; sidekiq::queue.all.each { |q| puts &quot;#{q.name} size=#{q.size} latency=#{q.latency.round}s&quot; }' 언제 머지나 파이프라인 진행이 느릴 때, sidekiq가 밀려 있는지 볼 때 주의 `busy`가 `concurrency`와 같으면 그 순간 스레드가 모두 사용 중이다. 순간적으로 차는 것은 흔하다. 판단은 `latency`(큐에서 가장 오래 기다린 잡의 대기 시간)로 한다. 이 값이 금방 0으로 돌아오면 순간적인 몰림이다 주의 머지(`mergeworker`)나 파이프라인 진행(`pipelineprocessworker`) 잡도 같은 `default` 큐를 쓴다. latency가 곧 머지 대기 시간이다 연관 웹 ui에서는 admin → monitoring → background jobs의 busy 탭과 queues 탭에서 같은 값을 볼 수 있다">
+      <h3>Sidekiq 사용률과 큐 대기 시간 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-rails runner 'require &quot;sidekiq/api&quot;; Sidekiq::ProcessSet.new.each { |p| puts &quot;concurrency=#{p[&quot;concurrency&quot;]} busy=#{p[&quot;busy&quot;]}&quot; }; Sidekiq::Queue.all.each { |q| puts &quot;#{q.name} size=#{q.size} latency=#{q.latency.round}s&quot; }'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>머지나 파이프라인 진행이 느릴 때, Sidekiq가 밀려 있는지 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">busy</code>가 <code class="ic">concurrency</code>와 같으면 그 순간 스레드가 모두 사용 중이다. 순간적으로 차는 것은 흔하다. 판단은 <code class="ic">latency</code>(큐에서 가장 오래 기다린 잡의 대기 시간)로 한다. 이 값이 금방 0으로 돌아오면 순간적인 몰림이다</li><li class="warn"><span class="lb">주의</span>머지(<code class="ic">MergeWorker</code>)나 파이프라인 진행(<code class="ic">PipelineProcessWorker</code>) 잡도 같은 <code class="ic">default</code> 큐를 쓴다. latency가 곧 머지 대기 시간이다</li><li class="rel"><span class="lb">연관</span>웹 UI에서는 Admin → Monitoring → Background jobs의 Busy 탭과 Queues 탭에서 같은 값을 볼 수 있다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-sidekiq에서-지금-실행-중인-잡-보기" data-search="gitlab (omnibus / docker) sidekiq에서 지금 실행 중인 잡 보기 sudo docker exec &lt;container&gt; gitlab-rails runner 'require &quot;sidekiq/api&quot;; sidekiq::workers.new.each { |_, _, w| pl = w[&quot;payload&quot;]; pl = sidekiq.load_json(pl) if pl.is_a?(string); puts &quot;#{(time.now.to_i - w[&quot;run_at&quot;]).to_i}s #{pl[&quot;class&quot;]} q=#{w[&quot;queue&quot;]}&quot; }' 언제 스레드를 무엇이 차지하고 있는지, 몇 분째 안 끝나는 잡이 있는지 볼 때 주의 맨 앞 숫자는 그 잡이 실행된 지 몇 초인지다. 오래 걸리는 잡 몇 개가 원인인지, 짧은 잡이 계속 몰리는 처리량 문제인지 여기서 갈린다 주의 버전에 따라 `payload`가 문자열(json)로 들어 있어서 `load_json`으로 풀어야 한다">
+      <h3>Sidekiq에서 지금 실행 중인 잡 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-rails runner 'require &quot;sidekiq/api&quot;; Sidekiq::Workers.new.each { |_, _, w| pl = w[&quot;payload&quot;]; pl = Sidekiq.load_json(pl) if pl.is_a?(String); puts &quot;#{(Time.now.to_i - w[&quot;run_at&quot;]).to_i}s #{pl[&quot;class&quot;]} q=#{w[&quot;queue&quot;]}&quot; }'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>스레드를 무엇이 차지하고 있는지, 몇 분째 안 끝나는 잡이 있는지 볼 때</li><li class="warn"><span class="lb">주의</span>맨 앞 숫자는 그 잡이 실행된 지 몇 초인지다. 오래 걸리는 잡 몇 개가 원인인지, 짧은 잡이 계속 몰리는 처리량 문제인지 여기서 갈린다</li><li class="warn"><span class="lb">주의</span>버전에 따라 <code class="ic">payload</code>가 문자열(JSON)로 들어 있어서 <code class="ic">load_json</code>으로 풀어야 한다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-큐에-쌓인-잡-종류-집계" data-search="gitlab (omnibus / docker) 큐에 쌓인 잡 종류 집계 sudo docker exec &lt;container&gt; gitlab-rails runner 'require &quot;sidekiq/api&quot;; sidekiq::queue.new(&quot;&lt;queue&gt;&quot;).map(&amp;:klass).tally.sort_by { -_2 }.first(10).each { |k, v| puts &quot;#{v} #{k}&quot; }' 언제 큐가 밀려 있을 때, 어떤 잡이 많이 쌓였는지 볼 때 주의 `&lt;queue&gt;`는 보통 `default`다. 최근 gitlab은 대부분의 잡을 `default` 큐 하나로 보낸다 주의 큐가 수만 건이면 전부 읽느라 오래 걸린다">
+      <h3>큐에 쌓인 잡 종류 집계</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-rails runner 'require &quot;sidekiq/api&quot;; Sidekiq::Queue.new(&quot;&lt;queue&gt;&quot;).map(&amp;:klass).tally.sort_by { -_2 }.first(10).each { |k, v| puts &quot;#{v} #{k}&quot; }'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>큐가 밀려 있을 때, 어떤 잡이 많이 쌓였는지 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">&lt;queue&gt;</code>는 보통 <code class="ic">default</code>다. 최근 GitLab은 대부분의 잡을 <code class="ic">default</code> 큐 하나로 보낸다</li><li class="warn"><span class="lb">주의</span>큐가 수만 건이면 전부 읽느라 오래 걸린다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-실패-잡dead--retry-원인-집계" data-search="gitlab (omnibus / docker) 실패 잡(dead / retry) 원인 집계 sudo docker exec &lt;container&gt; gitlab-rails runner 'require &quot;sidekiq/api&quot;; sidekiq::deadset.new.first(2000).map { |j| [j.klass, j[&quot;error_class&quot;]] }.tally.sort_by { -_2 }.first(8).each { |k, v| puts &quot;#{v} #{k.inspect}&quot; }' 언제 dead 목록이 쌓였을 때 어떤 잡이 어떤 에러로 죽는지 한눈에 볼 때 주의 dead 목록은 기본 상한이 약 1만 건이다. 상한까지 차면 오래된 것부터 밀려나고, 새 실패가 묻혀서 안 보인다. 원인을 고친 뒤 웹 ui(background jobs → dead → delete all)에서 비워 두는 게 좋다 주의 메일 잡은 클래스명이 `activejob::...::jobwrapper`로 나온다. 실제 클래스는 잡 인자 안에 있다 연관 재시도 대기 중인 잡은 `deadset` 대신 `retryset`으로 같은 방식으로 본다">
+      <h3>실패 잡(Dead / Retry) 원인 집계</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-rails runner 'require &quot;sidekiq/api&quot;; Sidekiq::DeadSet.new.first(2000).map { |j| [j.klass, j[&quot;error_class&quot;]] }.tally.sort_by { -_2 }.first(8).each { |k, v| puts &quot;#{v} #{k.inspect}&quot; }'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Dead 목록이 쌓였을 때 어떤 잡이 어떤 에러로 죽는지 한눈에 볼 때</li><li class="warn"><span class="lb">주의</span>Dead 목록은 기본 상한이 약 1만 건이다. 상한까지 차면 오래된 것부터 밀려나고, 새 실패가 묻혀서 안 보인다. 원인을 고친 뒤 웹 UI(Background jobs → Dead → Delete All)에서 비워 두는 게 좋다</li><li class="warn"><span class="lb">주의</span>메일 잡은 클래스명이 <code class="ic">ActiveJob::...::JobWrapper</code>로 나온다. 실제 클래스는 잡 인자 안에 있다</li><li class="rel"><span class="lb">연관</span>재시도 대기 중인 잡은 <code class="ic">DeadSet</code> 대신 <code class="ic">RetrySet</code>으로 같은 방식으로 본다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-머지-진행-중locked으로-멈춘-mr-찾기" data-search="gitlab (omnibus / docker) 머지 진행 중(locked)으로 멈춘 mr 찾기 sudo docker exec &lt;container&gt; gitlab-rails runner 'mergerequest.where(state_id: mergerequest.available_states[:locked]).each { |m| puts &quot;#{m.project.full_path}!#{m.iid} jid=#{m.merge_jid} running=#{gitlab::sidekiqstatus.running?(m.merge_jid)} updated=#{m.updated_at}&quot; }' 언제 mr이 &quot;merging! drum roll&quot; 화면에서 넘어가지 않을 때 주의 `running=true`면 머지 잡이 아직 처리 중이거나 큐에서 기다리는 중이다. `running=false`인데 locked로 남아 있으면 잡이 유실된 것이다(예: 머지 도중 sidekiq 재시작) 주의 `merge_jid`는 그 mr의 머지를 맡은 sidekiq 잡 id다">
+      <h3>머지 진행 중(locked)으로 멈춘 MR 찾기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-rails runner 'MergeRequest.where(state_id: MergeRequest.available_states[:locked]).each { |m| puts &quot;#{m.project.full_path}!#{m.iid} jid=#{m.merge_jid} running=#{Gitlab::SidekiqStatus.running?(m.merge_jid)} updated=#{m.updated_at}&quot; }'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>MR이 &quot;Merging! Drum roll&quot; 화면에서 넘어가지 않을 때</li><li class="warn"><span class="lb">주의</span><code class="ic">running=true</code>면 머지 잡이 아직 처리 중이거나 큐에서 기다리는 중이다. <code class="ic">running=false</code>인데 locked로 남아 있으면 잡이 유실된 것이다(예: 머지 도중 Sidekiq 재시작)</li><li class="warn"><span class="lb">주의</span><code class="ic">merge_jid</code>는 그 MR의 머지를 맡은 Sidekiq 잡 ID다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-sidekiq-로그에서-특정-문자열-찾기" data-search="gitlab (omnibus / docker) sidekiq 로그에서 특정 문자열 찾기 sudo docker exec &lt;container&gt; sh -c &quot;grep -h '&lt;pattern&gt;' /var/log/gitlab/sidekiq/current | tail -20&quot; 언제 특정 워커(`mergeworker` 등)나 에러(`errno::enoent` 등)가 언제, 얼마나 걸렸는지 볼 때 주의 한 줄이 json 하나다. 볼 필드는 `job_status`(start/done/fail), `duration_s`(실행 시간), `queue_duration_s`(큐에서 기다린 시간), `gitaly_duration_s`(그중 gitaly에서 쓴 시간) 주의 `start`만 있고 `done`이나 `fail`이 없으면 아직 실행 중이거나 잡이 유실된 것이다 주의 로테이트된 이전 로그(`@*.s`)는 gzip이라 `zcat`으로 읽는다">
+      <h3>Sidekiq 로그에서 특정 문자열 찾기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; sh -c &quot;grep -h '&lt;pattern&gt;' /var/log/gitlab/sidekiq/current | tail -20&quot;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>특정 워커(<code class="ic">MergeWorker</code> 등)나 에러(<code class="ic">Errno::ENOENT</code> 등)가 언제, 얼마나 걸렸는지 볼 때</li><li class="warn"><span class="lb">주의</span>한 줄이 JSON 하나다. 볼 필드는 <code class="ic">job_status</code>(start/done/fail), <code class="ic">duration_s</code>(실행 시간), <code class="ic">queue_duration_s</code>(큐에서 기다린 시간), <code class="ic">gitaly_duration_s</code>(그중 Gitaly에서 쓴 시간)</li><li class="warn"><span class="lb">주의</span><code class="ic">start</code>만 있고 <code class="ic">done</code>이나 <code class="ic">fail</code>이 없으면 아직 실행 중이거나 잡이 유실된 것이다</li><li class="warn"><span class="lb">주의</span>로테이트된 이전 로그(<code class="ic">@*.s</code>)는 gzip이라 <code class="ic">zcat</code>으로 읽는다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-내장-postgresql-커넥션-사용량" data-search="gitlab (omnibus / docker) 내장 postgresql 커넥션 사용량 echo &quot;select count(*) || ' / ' || current_setting('max_connections') from pg_stat_activity;&quot; | sudo docker exec -i &lt;container&gt; gitlab-psql -at 언제 sidekiq 스레드나 puma 워커를 늘리기 전에 db 커넥션 여유를 확인할 때 주의 `gitlab-psql`은 내장 postgresql에 gitlab 계정으로 붙는 래퍼다. `-a`는 표 테두리 없이, `-t`는 헤더 없이 값만 출력한다 주의 sql을 `-c &quot;...&quot;`로 넘기면 원격 ssh나 `sh -c`를 거치며 따옴표가 깨지기 쉽다. 표준입력으로 넘기면 이 문제가 없다. 이때 `docker exec`에 `-i`가 있어야 표준입력이 컨테이너로 전달된다 연관 어느 프로세스가 커넥션을 쓰는지는 `select application_name, count(*) from pg_stat_activity group by 1 order by 2 desc;`로 본다">
+      <h3>내장 PostgreSQL 커넥션 사용량</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>echo &quot;select count(*) || ' / ' || current_setting('max_connections') from pg_stat_activity;&quot; | sudo docker exec -i &lt;container&gt; gitlab-psql -At</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Sidekiq 스레드나 puma 워커를 늘리기 전에 DB 커넥션 여유를 확인할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">gitlab-psql</code>은 내장 PostgreSQL에 gitlab 계정으로 붙는 래퍼다. <code class="ic">-A</code>는 표 테두리 없이, <code class="ic">-t</code>는 헤더 없이 값만 출력한다</li><li class="warn"><span class="lb">주의</span>SQL을 <code class="ic">-c &quot;...&quot;</code>로 넘기면 원격 SSH나 <code class="ic">sh -c</code>를 거치며 따옴표가 깨지기 쉽다. 표준입력으로 넘기면 이 문제가 없다. 이때 <code class="ic">docker exec</code>에 <code class="ic">-i</code>가 있어야 표준입력이 컨테이너로 전달된다</li><li class="rel"><span class="lb">연관</span>어느 프로세스가 커넥션을 쓰는지는 <code class="ic">select application_name, count(*) from pg_stat_activity group by 1 order by 2 desc;</code>로 본다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-rails-콘솔-열기" data-search="gitlab (omnibus / docker) rails 콘솔 열기 sudo docker exec -it &lt;container&gt; gitlab-rails console 언제 유저 상태 조회나 잠금 해제처럼 ruby 코드를 여러 줄 이어서 실행할 때 주의 gitlab 애플리케이션 안에서 도는 ruby 콘솔이다. db에 바로 반영되므로 조회만 할 때도 실수로 값을 바꾸지 않게 조심한다. 뜨는 데 수십 초 걸린다 주의 `-it`가 없으면 입력을 받지 못하고 바로 끝난다. `-i`는 표준입력 연결, `-t`는 터미널 할당이다 주의 콘솔에서 설정 값을 대입해도(예: `user.maximum_attempts = 5`) 그 콘솔 프로세스에서만 바뀐다. 웹 요청을 처리하는 puma에는 반영되지 않는다 연관 한 줄로 끝나는 조회는 `gitlab-rails runner '&lt;루비 코드&gt;'`가 편하다">
+      <h3>Rails 콘솔 열기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec -it &lt;container&gt; gitlab-rails console</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>유저 상태 조회나 잠금 해제처럼 Ruby 코드를 여러 줄 이어서 실행할 때</li><li class="warn"><span class="lb">주의</span>GitLab 애플리케이션 안에서 도는 Ruby 콘솔이다. DB에 바로 반영되므로 조회만 할 때도 실수로 값을 바꾸지 않게 조심한다. 뜨는 데 수십 초 걸린다</li><li class="warn"><span class="lb">주의</span><code class="ic">-it</code>가 없으면 입력을 받지 못하고 바로 끝난다. <code class="ic">-i</code>는 표준입력 연결, <code class="ic">-t</code>는 터미널 할당이다</li><li class="warn"><span class="lb">주의</span>콘솔에서 설정 값을 대입해도(예: <code class="ic">User.maximum_attempts = 5</code>) 그 콘솔 프로세스에서만 바뀐다. 웹 요청을 처리하는 Puma에는 반영되지 않는다</li><li class="rel"><span class="lb">연관</span>한 줄로 끝나는 조회는 <code class="ic">gitlab-rails runner '&lt;루비 코드&gt;'</code>가 편하다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-계정-잠금-상태와-실패-횟수-확인" data-search="gitlab (omnibus / docker) 계정 잠금 상태와 실패 횟수 확인 sudo docker exec &lt;container&gt; gitlab-rails runner 'u = user.find_by_username(&quot;&lt;user&gt;&quot;); puts &quot;locked=#{u.access_locked?} failed=#{u.failed_attempts}&quot;' 언제 로그인할 때 &quot;your account is locked.&quot;가 뜰 때 주의 `access_locked?`는 지금 잠겨 있는지, `failed_attempts`는 누적된 로그인 실패 횟수다 주의 실패 횟수는 잠긴 뒤에도 계속 올라간다. 잠긴 상태에서는 맞는 비밀번호도 실패로 센다. 0으로 돌아가는 건 로그인 성공, 잠금 해제, 잠금 시간이 지난 뒤 다음 시도가 들어왔을 때다 연관 잠금을 풀면 실패 횟수가 0이 된다. 조사가 필요하면 풀기 전에 이 값을 먼저 기록한다">
+      <h3>계정 잠금 상태와 실패 횟수 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-rails runner 'u = User.find_by_username(&quot;&lt;user&gt;&quot;); puts &quot;locked=#{u.access_locked?} failed=#{u.failed_attempts}&quot;'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>로그인할 때 &quot;Your account is locked.&quot;가 뜰 때</li><li class="warn"><span class="lb">주의</span><code class="ic">access_locked?</code>는 지금 잠겨 있는지, <code class="ic">failed_attempts</code>는 누적된 로그인 실패 횟수다</li><li class="warn"><span class="lb">주의</span>실패 횟수는 잠긴 뒤에도 계속 올라간다. 잠긴 상태에서는 맞는 비밀번호도 실패로 센다. 0으로 돌아가는 건 로그인 성공, 잠금 해제, 잠금 시간이 지난 뒤 다음 시도가 들어왔을 때다</li><li class="rel"><span class="lb">연관</span>잠금을 풀면 실패 횟수가 0이 된다. 조사가 필요하면 풀기 전에 이 값을 먼저 기록한다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-계정-잠금-해제" data-search="gitlab (omnibus / docker) 계정 잠금 해제 sudo docker exec &lt;container&gt; gitlab-rails runner 'user.find_by_username(&quot;&lt;user&gt;&quot;).unlock_access!' 언제 잠금 시간이 지나기를 기다릴 수 없을 때, 특히 root처럼 웹에서 풀어 줄 다른 관리자가 없을 때 주의 잠금을 풀면서 실패 횟수도 0으로 초기화한다. 비밀번호는 바꾸지 않는다 연관 다른 관리자 계정이 있으면 웹 ui의 admin → users → 해당 유저 → unlock으로도 풀 수 있다">
+      <h3>계정 잠금 해제</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-rails runner 'User.find_by_username(&quot;&lt;user&gt;&quot;).unlock_access!'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>잠금 시간이 지나기를 기다릴 수 없을 때, 특히 root처럼 웹에서 풀어 줄 다른 관리자가 없을 때</li><li class="warn"><span class="lb">주의</span>잠금을 풀면서 실패 횟수도 0으로 초기화한다. 비밀번호는 바꾸지 않는다</li><li class="rel"><span class="lb">연관</span>다른 관리자 계정이 있으면 웹 UI의 Admin → Users → 해당 유저 → Unlock으로도 풀 수 있다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-계정-잠금-기준-확인" data-search="gitlab (omnibus / docker) 계정 잠금 기준 확인 sudo docker exec &lt;container&gt; gitlab-rails runner 'puts user.maximum_attempts; puts user.unlock_in' 언제 몇 번 틀리면 잠기는지, 잠긴 뒤 언제 저절로 풀리는지 볼 때 주의 gitlab이 쓰는 인증 라이브러리(devise)의 설정값이다. 따로 바꾸지 않았다면 `10`과 `10 minutes`가 나온다 주의 `gitlab.rb`에는 이 값을 바꾸는 항목이 없다">
+      <h3>계정 잠금 기준 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-rails runner 'puts User.maximum_attempts; puts User.unlock_in'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>몇 번 틀리면 잠기는지, 잠긴 뒤 언제 저절로 풀리는지 볼 때</li><li class="warn"><span class="lb">주의</span>GitLab이 쓰는 인증 라이브러리(Devise)의 설정값이다. 따로 바꾸지 않았다면 <code class="ic">10</code>과 <code class="ic">10 minutes</code>가 나온다</li><li class="warn"><span class="lb">주의</span><code class="ic">gitlab.rb</code>에는 이 값을 바꾸는 항목이 없다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-인증-이벤트-테이블에서-로그인-실패-ip-조회" data-search="gitlab (omnibus / docker) 인증 이벤트 테이블에서 로그인 실패 ip 조회 sudo docker exec &lt;container&gt; gitlab-rails runner 'authenticationevent.where(user_name: &quot;&lt;user&gt;&quot;, result: :failed).order(created_at: :desc).limit(40).pluck(:created_at, :ip_address, :provider).each { |r| puts r.join(&quot; &quot;) }' 언제 어떤 계정의 로그인 실패가 언제, 어느 ip에서 났는지 볼 때 주의 `result: :failed`는 실패만 고르고, `pluck`은 시각, ip, 인증 방식 컬럼만 뽑는다. `provider`가 `standard`면 일반 id/비밀번호 로그인이다 주의 버전이나 환경에 따라 실패가 있었는데도 결과가 비어 있을 수 있다. 그럴 때는 아래 &quot;로그에서 로그인 실패 ip 찾기&quot;로 본다 연관 ip별 건수만 보려면 `pluck(...)` 부분을 `group(:ip_address).count`로 바꾼다">
+      <h3>인증 이벤트 테이블에서 로그인 실패 IP 조회</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-rails runner 'AuthenticationEvent.where(user_name: &quot;&lt;user&gt;&quot;, result: :failed).order(created_at: :desc).limit(40).pluck(:created_at, :ip_address, :provider).each { |r| puts r.join(&quot; &quot;) }'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>어떤 계정의 로그인 실패가 언제, 어느 IP에서 났는지 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">result: :failed</code>는 실패만 고르고, <code class="ic">pluck</code>은 시각, IP, 인증 방식 컬럼만 뽑는다. <code class="ic">provider</code>가 <code class="ic">standard</code>면 일반 ID/비밀번호 로그인이다</li><li class="warn"><span class="lb">주의</span>버전이나 환경에 따라 실패가 있었는데도 결과가 비어 있을 수 있다. 그럴 때는 아래 &quot;로그에서 로그인 실패 IP 찾기&quot;로 본다</li><li class="rel"><span class="lb">연관</span>IP별 건수만 보려면 <code class="ic">pluck(...)</code> 부분을 <code class="ic">group(:ip_address).count</code>로 바꾼다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-로그에서-로그인-실패-ip-찾기" data-search="gitlab (omnibus / docker) 로그에서 로그인 실패 ip 찾기 sudo docker exec &lt;container&gt; grep -h 'failed login: username=&lt;user&gt;' /var/log/gitlab/gitlab-rails/application_json.log 언제 계정이 잠겼거나 로그인 실패가 의심될 때, 누가(어느 ip가) 시도했는지 찾을 때 주의 실패 한 건이 json 한 줄이고, `message`에 `ip=`가 함께 찍힌다 주의 `time`은 utc다. 한국 시간은 9시간을 더한다 주의 현재 파일만 검색한다. 로테이션된 이전 로그는 `.gz`로 압축되어 있어서 `grep` 대신 `zgrep`을 써야 한다">
+      <h3>로그에서 로그인 실패 IP 찾기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; grep -h 'Failed Login: username=&lt;user&gt;' /var/log/gitlab/gitlab-rails/application_json.log</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>계정이 잠겼거나 로그인 실패가 의심될 때, 누가(어느 IP가) 시도했는지 찾을 때</li><li class="warn"><span class="lb">주의</span>실패 한 건이 JSON 한 줄이고, <code class="ic">message</code>에 <code class="ic">ip=</code>가 함께 찍힌다</li><li class="warn"><span class="lb">주의</span><code class="ic">time</code>은 UTC다. 한국 시간은 9시간을 더한다</li><li class="warn"><span class="lb">주의</span>현재 파일만 검색한다. 로테이션된 이전 로그는 <code class="ic">.gz</code>로 압축되어 있어서 <code class="ic">grep</code> 대신 <code class="ic">zgrep</code>을 써야 한다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-번들-nginx-설정-문법-검사" data-search="gitlab (omnibus / docker) 번들 nginx 설정 문법 검사 sudo docker exec &lt;container&gt; /opt/gitlab/embedded/sbin/nginx -t -c /var/opt/gitlab/nginx/conf/nginx.conf 언제 gitlab에 포함된 nginx 설정 파일을 직접 고친 뒤 반영하기 전에 주의 `-c`를 빼면 `/opt/gitlab/embedded/conf/nginx.conf`를 검사하고 `syntax is ok`가 나온다. 이 파일은 패키지 기본 설정이라 실제로는 쓰이지 않는다. 출력에 `/var/opt/gitlab/nginx/conf/nginx.conf`가 나와야 제대로 검사한 것이다 주의 소문자 `-t` 대신 대문자 `-t`를 쓰면 include된 파일까지 합친 전체 설정이 출력된다. 레지스트리용 server 블록은 `gitlab-registry.conf`, 웹·git(https)은 `gitlab-http.conf`에 있다 연관 일반 nginx 기준은 [nginx](nginx.md#설정-문법-검사)">
+      <h3>번들 Nginx 설정 문법 검사</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; /opt/gitlab/embedded/sbin/nginx -t -c /var/opt/gitlab/nginx/conf/nginx.conf</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>GitLab에 포함된 Nginx 설정 파일을 직접 고친 뒤 반영하기 전에</li><li class="warn"><span class="lb">주의</span><code class="ic">-c</code>를 빼면 <code class="ic">/opt/gitlab/embedded/conf/nginx.conf</code>를 검사하고 <code class="ic">syntax is ok</code>가 나온다. 이 파일은 패키지 기본 설정이라 실제로는 쓰이지 않는다. 출력에 <code class="ic">/var/opt/gitlab/nginx/conf/nginx.conf</code>가 나와야 제대로 검사한 것이다</li><li class="warn"><span class="lb">주의</span>소문자 <code class="ic">-t</code> 대신 대문자 <code class="ic">-T</code>를 쓰면 include된 파일까지 합친 전체 설정이 출력된다. 레지스트리용 server 블록은 <code class="ic">gitlab-registry.conf</code>, 웹·git(HTTPS)은 <code class="ic">gitlab-http.conf</code>에 있다</li><li class="rel"><span class="lb">연관</span>일반 Nginx 기준은 [nginx](nginx.md#설정-문법-검사)</li></ul>
+    </article>
+<article class="cmd" id="gitlab-번들-nginx-설정-무중단-반영" data-search="gitlab (omnibus / docker) 번들 nginx 설정 무중단 반영 sudo docker exec &lt;container&gt; gitlab-ctl hup nginx 언제 번들 nginx 설정을 고치고 연결을 끊지 않고 반영할 때 주의 `hup`은 nginx에 hup 신호를 보내 설정만 다시 읽게 한다. `nginx -s reload`와 같다. `gitlab-ctl restart nginx`는 진행 중인 연결이 끊긴다 주의 `/var/opt/gitlab/nginx/conf/` 아래 파일을 직접 고쳤다면 `gitlab-ctl reconfigure`는 실행하지 않는다. reconfigure가 파일을 다시 만들면서 고친 내용이 사라진다">
+      <h3>번들 Nginx 설정 무중단 반영</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; gitlab-ctl hup nginx</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>번들 Nginx 설정을 고치고 연결을 끊지 않고 반영할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">hup</code>은 Nginx에 HUP 신호를 보내 설정만 다시 읽게 한다. <code class="ic">nginx -s reload</code>와 같다. <code class="ic">gitlab-ctl restart nginx</code>는 진행 중인 연결이 끊긴다</li><li class="warn"><span class="lb">주의</span><code class="ic">/var/opt/gitlab/nginx/conf/</code> 아래 파일을 직접 고쳤다면 <code class="ic">gitlab-ctl reconfigure</code>는 실행하지 않는다. reconfigure가 파일을 다시 만들면서 고친 내용이 사라진다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-직접-고친-번들-nginx-설정이-남아-있는지-확인" data-search="gitlab (omnibus / docker) 직접 고친 번들 nginx 설정이 남아 있는지 확인 sudo docker exec &lt;container&gt; grep -c '&lt;directive&gt;' /var/opt/gitlab/nginx/conf/&lt;conf-file&gt; 언제 `gitlab-ctl reconfigure`나 gitlab 업그레이드 뒤, 직접 넣은 nginx 설정이 살아 있는지 볼 때 주의 `-c`는 일치하는 줄 수를 센다. `0`이면 설정이 사라진 것이므로 다시 넣는다 주의 `/var/opt/gitlab/nginx/conf/` 아래 파일은 reconfigure·업그레이드 때 다시 생성된다. 영구적으로 넣으려면 `gitlab.rb`의 `registry_nginx['custom_gitlab_server_config']` 같은 설정을 쓴다">
+      <h3>직접 고친 번들 Nginx 설정이 남아 있는지 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo docker exec &lt;container&gt; grep -c '&lt;directive&gt;' /var/opt/gitlab/nginx/conf/&lt;conf-file&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">gitlab-ctl reconfigure</code>나 GitLab 업그레이드 뒤, 직접 넣은 Nginx 설정이 살아 있는지 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">-c</code>는 일치하는 줄 수를 센다. <code class="ic">0</code>이면 설정이 사라진 것이므로 다시 넣는다</li><li class="warn"><span class="lb">주의</span><code class="ic">/var/opt/gitlab/nginx/conf/</code> 아래 파일은 reconfigure·업그레이드 때 다시 생성된다. 영구적으로 넣으려면 <code class="ic">gitlab.rb</code>의 <code class="ic">registry_nginx['custom_gitlab_server_config']</code> 같은 설정을 쓴다</li></ul>
+    </article>
+<article class="cmd" id="gitlab-버전별-변경-내역changelog-검색" data-search="gitlab (omnibus / docker) 버전별 변경 내역(changelog) 검색 curl -sfl &quot;https://gitlab.com/gitlab-org/gitlab/-/raw/&lt;major&gt;-&lt;minor&gt;-stable-ee/changelog.md&quot; -o changelog.md
+grep -n &quot;^## &lt;major&gt;.&lt;minor&gt;&quot; changelog.md
+grep -nie &quot;&lt;keyword&gt;&quot; changelog.md
+  awk '/^## /{h=$0} nr==&lt;line&gt;{print h}' changelog.md 언제 업그레이드 뒤 동작이 바뀐 것 같을 때, 어느 버전에서 어떤 수정이 들어갔는지 찾을 때 주의 `&lt;major&gt;-&lt;minor&gt;-stable-ee` 브랜치(예: `18-11-stable-ee`)의 changelog에는 그 마이너 버전의 모든 패치(.1, .2 …)와 이전 버전 내역이 한 파일에 들어 있다. `-f`는 404 같은 http 에러면 빈 파일 대신 실패로 끝나게 하고, `-l`은 리다이렉트를 따라간다 주의 키워드에 걸린 줄이 어느 버전 소속인지는 그 줄 위쪽의 가장 가까운 `## x.y.z` 헤더로 판단한다. 아래 awk로 바로 확인할 수 있다 주의 패치 릴리스는 대부분 보안·버그 수정이고 `no changes.`인 버전도 많다. 기본값 변경 같은 동작 변화는 보통 마이너 버전(.0)에 들어간다">
+      <h3>버전별 변경 내역(CHANGELOG) 검색</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>curl -sfL &quot;https://gitlab.com/gitlab-org/gitlab/-/raw/&lt;major&gt;-&lt;minor&gt;-stable-ee/CHANGELOG.md&quot; -o CHANGELOG.md
+grep -n &quot;^## &lt;major&gt;.&lt;minor&gt;&quot; CHANGELOG.md
+grep -niE &quot;&lt;keyword&gt;&quot; CHANGELOG.md
+  awk '/^## /{h=$0} NR==&lt;line&gt;{print h}' CHANGELOG.md</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>업그레이드 뒤 동작이 바뀐 것 같을 때, 어느 버전에서 어떤 수정이 들어갔는지 찾을 때</li><li class="warn"><span class="lb">주의</span><code class="ic">&lt;major&gt;-&lt;minor&gt;-stable-ee</code> 브랜치(예: <code class="ic">18-11-stable-ee</code>)의 CHANGELOG에는 그 마이너 버전의 모든 패치(.1, .2 …)와 이전 버전 내역이 한 파일에 들어 있다. <code class="ic">-f</code>는 404 같은 HTTP 에러면 빈 파일 대신 실패로 끝나게 하고, <code class="ic">-L</code>은 리다이렉트를 따라간다</li><li class="warn"><span class="lb">주의</span>키워드에 걸린 줄이 어느 버전 소속인지는 그 줄 위쪽의 가장 가까운 <code class="ic">## x.y.z</code> 헤더로 판단한다. 아래 awk로 바로 확인할 수 있다</li><li class="warn"><span class="lb">주의</span>패치 릴리스는 대부분 보안·버그 수정이고 <code class="ic">No changes.</code>인 버전도 많다. 기본값 변경 같은 동작 변화는 보통 마이너 버전(.0)에 들어간다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="java" data-area="Java 인증서 (keytool)">
+  <h2>Java 인증서 (keytool)</h2>
+  <article class="cmd" id="java-truststore에서-ca-이름으로-검색" data-search="java 인증서 (keytool) truststore에서 ca 이름으로 검색 keytool -list -v -cacerts -storepass changeit | grep -i 'owner:' | grep -i '&lt;ca-name&gt;' 언제 java가 https 호출에서 `pkix path building failed`를 낼 때, 그 서버 인증서의 루트 ca가 jvm의 신뢰 저장소(cacerts)에 들어 있는지 볼 때 주의 cacerts에는 서버 인증서가 아니라 **루트 ca**가 들어 있다. 루트 ca만 있으면 그 ca가 발급한 서버 인증서는 따로 등록하지 않아도 통과한다. 루트 ca 이름은 `openssl s_client ... -showcerts` 출력의 마지막 `i:`(발급자)에서 확인한다 주의 `-cacerts`는 **실행한 그 jdk의** 기본 cacerts를 가리킨다(java 9 이상). java 8은 `-keystore $java_home/jre/lib/security/cacerts`로 지정한다. 앱이 쓰는 jdk와 다른 `keytool`로 보면 엉뚱한 파일을 보게 된다 주의 `-v`(상세 출력)를 붙여야 `owner:`(인증서 주인, subject) 줄이 나온다. `changeit`은 cacerts의 기본 비밀번호다 주의 앱이 `-djavax.net.ssl.truststore=&lt;path&gt;`로 별도 파일을 쓰고 있으면 기본 cacerts는 무시된다. `ps -ef | grep java`로 이 옵션이 붙어 있는지 먼저 본다 연관 없으면 아래 &quot;루트 ca 인증서 등록&quot;">
+      <h3>truststore에서 CA 이름으로 검색</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>keytool -list -v -cacerts -storepass changeit | grep -i 'Owner:' | grep -i '&lt;ca-name&gt;'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Java가 HTTPS 호출에서 <code class="ic">PKIX path building failed</code>를 낼 때, 그 서버 인증서의 루트 CA가 JVM의 신뢰 저장소(cacerts)에 들어 있는지 볼 때</li><li class="warn"><span class="lb">주의</span>cacerts에는 서버 인증서가 아니라 <strong>루트 CA</strong>가 들어 있다. 루트 CA만 있으면 그 CA가 발급한 서버 인증서는 따로 등록하지 않아도 통과한다. 루트 CA 이름은 <code class="ic">openssl s_client ... -showcerts</code> 출력의 마지막 <code class="ic">i:</code>(발급자)에서 확인한다</li><li class="warn"><span class="lb">주의</span><code class="ic">-cacerts</code>는 <strong>실행한 그 JDK의</strong> 기본 cacerts를 가리킨다(Java 9 이상). Java 8은 <code class="ic">-keystore $JAVA_HOME/jre/lib/security/cacerts</code>로 지정한다. 앱이 쓰는 JDK와 다른 <code class="ic">keytool</code>로 보면 엉뚱한 파일을 보게 된다</li><li class="warn"><span class="lb">주의</span><code class="ic">-v</code>(상세 출력)를 붙여야 <code class="ic">Owner:</code>(인증서 주인, subject) 줄이 나온다. <code class="ic">changeit</code>은 cacerts의 기본 비밀번호다</li><li class="warn"><span class="lb">주의</span>앱이 <code class="ic">-Djavax.net.ssl.trustStore=&lt;path&gt;</code>로 별도 파일을 쓰고 있으면 기본 cacerts는 무시된다. <code class="ic">ps -ef | grep java</code>로 이 옵션이 붙어 있는지 먼저 본다</li><li class="rel"><span class="lb">연관</span>없으면 아래 &quot;루트 CA 인증서 등록&quot;</li></ul>
+    </article>
+<article class="cmd" id="java-ca-이름으로-alias-찾기" data-search="java 인증서 (keytool) ca 이름으로 alias 찾기 keytool -list -v -keystore &lt;keystore&gt; -storepass changeit | grep -ie 'alias name|owner:' | grep -ib1 '&lt;ca-name&gt;' 언제 등록된 인증서를 지우거나 확인하려는데 저장소 안에서 부르는 이름(alias)을 모를 때 주의 `grep -b1`은 걸린 줄 바로 위 1줄도 같이 보여준다. 출력에서 `alias name`이 `owner` 바로 위에 오므로 alias가 함께 나온다 연관 찾은 alias로 &quot;특정 alias 등록 여부 확인&quot;, &quot;인증서 삭제&quot;">
+      <h3>CA 이름으로 alias 찾기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>keytool -list -v -keystore &lt;keystore&gt; -storepass changeit | grep -iE 'Alias name|Owner:' | grep -iB1 '&lt;ca-name&gt;'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>등록된 인증서를 지우거나 확인하려는데 저장소 안에서 부르는 이름(alias)을 모를 때</li><li class="warn"><span class="lb">주의</span><code class="ic">grep -B1</code>은 걸린 줄 바로 위 1줄도 같이 보여준다. 출력에서 <code class="ic">Alias name</code>이 <code class="ic">Owner</code> 바로 위에 오므로 alias가 함께 나온다</li><li class="rel"><span class="lb">연관</span>찾은 alias로 &quot;특정 alias 등록 여부 확인&quot;, &quot;인증서 삭제&quot;</li></ul>
+    </article>
+<article class="cmd" id="java-특정-alias-등록-여부-확인" data-search="java 인증서 (keytool) 특정 alias 등록 여부 확인 keytool -list -cacerts -storepass changeit -alias &lt;alias&gt; 언제 인증서를 등록한 뒤 제대로 들어갔는지 볼 때 주의 없으면 `alias &lt;alias&gt; does not exist` 에러로 끝난다">
+      <h3>특정 alias 등록 여부 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>keytool -list -cacerts -storepass changeit -alias &lt;alias&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>인증서를 등록한 뒤 제대로 들어갔는지 볼 때</li><li class="warn"><span class="lb">주의</span>없으면 <code class="ic">Alias &lt;alias&gt; does not exist</code> 에러로 끝난다</li></ul>
+    </article>
+<article class="cmd" id="java-루트-ca-인증서-등록" data-search="java 인증서 (keytool) 루트 ca 인증서 등록 keytool -importcert -cacerts -storepass changeit -alias &lt;alias&gt; -file &lt;cert-file&gt; -noprompt 언제 사설 ca나 jdk 기본 cacerts에 없는 ca(정부 gpki 등)가 발급한 인증서를 java가 신뢰하게 만들 때 주의 옵션 — `-importcert` 인증서 추가 / `-alias` 저장소 안에서 부를 이름(기존 것과 겹치면 실패) / `-file` 등록할 인증서(pem, der 둘 다 됨) / `-noprompt` &quot;신뢰하시겠습니까?&quot; 확인 생략 주의 보통 **루트 ca만** 넣는다. 중간 인증서는 서버가 보내는 게 정상이다. 서버가 중간 인증서를 안 보내면 루트를 넣어도 pkix 에러가 계속 난다. 이때는 서버에 fullchain을 등록하는 게 근본 해결이고, 서버를 못 고칠 때만 중간 ca도 같이 넣는다 주의 서버 인증서 자체를 넣는 건 피한다. 인증서를 갱신할 때마다 다시 넣어야 하고, 놓치면 그날부터 pkix 에러가 난다. 자체 서명 인증서는 자기가 곧 루트라서 예외다 주의 루트 인증서는 ca 공식 배포처에서 받는다. 접속 대상 서버가 보내준 것을 그대로 쓰면 신뢰의 출발점을 상대에게서 받는 셈이다 주의 등록한 뒤 **java 프로세스를 재시작해야** 반영된다. truststore는 jvm이 뜰 때 읽는다 주의 jdk를 업그레이드하거나 재설치하면 cacerts가 새 파일로 바뀌어 등록한 ca가 사라진다. 배포 스크립트나 dockerfile에 등록 단계를 넣어 둔다 연관 &quot;특정 alias 등록 여부 확인&quot;">
+      <h3>루트 CA 인증서 등록</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>keytool -importcert -cacerts -storepass changeit -alias &lt;alias&gt; -file &lt;cert-file&gt; -noprompt</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>사설 CA나 JDK 기본 cacerts에 없는 CA(정부 GPKI 등)가 발급한 인증서를 Java가 신뢰하게 만들 때</li><li class="warn"><span class="lb">주의</span>옵션 — <code class="ic">-importcert</code> 인증서 추가 / <code class="ic">-alias</code> 저장소 안에서 부를 이름(기존 것과 겹치면 실패) / <code class="ic">-file</code> 등록할 인증서(PEM, DER 둘 다 됨) / <code class="ic">-noprompt</code> &quot;신뢰하시겠습니까?&quot; 확인 생략</li><li class="warn"><span class="lb">주의</span>보통 <strong>루트 CA만</strong> 넣는다. 중간 인증서는 서버가 보내는 게 정상이다. 서버가 중간 인증서를 안 보내면 루트를 넣어도 PKIX 에러가 계속 난다. 이때는 서버에 fullchain을 등록하는 게 근본 해결이고, 서버를 못 고칠 때만 중간 CA도 같이 넣는다</li><li class="warn"><span class="lb">주의</span>서버 인증서 자체를 넣는 건 피한다. 인증서를 갱신할 때마다 다시 넣어야 하고, 놓치면 그날부터 PKIX 에러가 난다. 자체 서명 인증서는 자기가 곧 루트라서 예외다</li><li class="warn"><span class="lb">주의</span>루트 인증서는 CA 공식 배포처에서 받는다. 접속 대상 서버가 보내준 것을 그대로 쓰면 신뢰의 출발점을 상대에게서 받는 셈이다</li><li class="warn"><span class="lb">주의</span>등록한 뒤 <strong>Java 프로세스를 재시작해야</strong> 반영된다. truststore는 JVM이 뜰 때 읽는다</li><li class="warn"><span class="lb">주의</span>JDK를 업그레이드하거나 재설치하면 cacerts가 새 파일로 바뀌어 등록한 CA가 사라진다. 배포 스크립트나 Dockerfile에 등록 단계를 넣어 둔다</li><li class="rel"><span class="lb">연관</span>&quot;특정 alias 등록 여부 확인&quot;</li></ul>
+    </article>
+<article class="cmd" id="java-인증서-삭제" data-search="java 인증서 (keytool) 인증서 삭제 keytool -delete -alias &lt;alias&gt; -keystore &lt;keystore&gt; -storepass changeit 언제 잘못 넣은 인증서를 뺄 때. 또는 cacerts **복사본**에서 특정 ca를 빼고 `-djavax.net.ssl.truststore=&lt;복사본&gt;`으로 실행해 &quot;이 ca가 없으면 pkix 에러가 나는지&quot; 재현할 때 주의 원본 cacerts에서 공인 루트 ca를 지우면 그 ca를 쓰는 외부 호출이 전부 pkix로 실패한다. 재현할 때는 `cp`로 복사본을 만들어 거기서 지운다">
+      <h3>인증서 삭제</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>keytool -delete -alias &lt;alias&gt; -keystore &lt;keystore&gt; -storepass changeit</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>잘못 넣은 인증서를 뺄 때. 또는 cacerts <strong>복사본</strong>에서 특정 CA를 빼고 <code class="ic">-Djavax.net.ssl.trustStore=&lt;복사본&gt;</code>으로 실행해 &quot;이 CA가 없으면 PKIX 에러가 나는지&quot; 재현할 때</li><li class="warn"><span class="lb">주의</span>원본 cacerts에서 공인 루트 CA를 지우면 그 CA를 쓰는 외부 호출이 전부 PKIX로 실패한다. 재현할 때는 <code class="ic">cp</code>로 복사본을 만들어 거기서 지운다</li></ul>
+    </article>
+<article class="cmd" id="java-컨테이너-안-jvm에-호스트-인증서-등록" data-search="java 인증서 (keytool) 컨테이너 안 jvm에 호스트 인증서 등록 docker exec -i &lt;container&gt; keytool -importcert -cacerts -storepass changeit -alias &lt;alias&gt; -noprompt &lt; &lt;cert-file&gt; 언제 인증서 파일은 호스트에 있는데 컨테이너 안의 java에 등록할 때 주의 `docker exec`로 실행한 명령은 컨테이너 안에서 돈다. 그래서 `-file &lt;cert-file&gt;`로 주면 호스트 파일을 못 찾는다. `-file`을 빼면 keytool이 표준입력에서 인증서를 읽으므로, 호스트 쉘의 `&lt;` 리다이렉트로 내용을 넘긴다 주의 `-it`가 아니라 `-i`만 쓴다. `-i`는 표준입력을 컨테이너로 연결하고, `-t`는 터미널을 붙인다. 입력을 파일로 넘기면서 `-t`를 붙이면 `the input device is not a tty`로 실패한다 주의 `docker restart`로는 유지되지만, 컨테이너를 지우고 다시 만들면(`docker rm`, compose 재생성, 이미지 업데이트) 사라진다. 계속 쓸 거면 dockerfile에 `copy` + `run keytool -importcert ...`로 넣는다 연관 파일을 먼저 넣고 싶으면 `docker cp &lt;cert-file&gt; &lt;container&gt;:/tmp/` 후 `-file /tmp/&lt;cert-file&gt;`로 등록. 등록 뒤 `docker restart &lt;container&gt;`">
+      <h3>컨테이너 안 JVM에 호스트 인증서 등록</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>docker exec -i &lt;container&gt; keytool -importcert -cacerts -storepass changeit -alias &lt;alias&gt; -noprompt &lt; &lt;cert-file&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>인증서 파일은 호스트에 있는데 컨테이너 안의 Java에 등록할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">docker exec</code>로 실행한 명령은 컨테이너 안에서 돈다. 그래서 <code class="ic">-file &lt;cert-file&gt;</code>로 주면 호스트 파일을 못 찾는다. <code class="ic">-file</code>을 빼면 keytool이 표준입력에서 인증서를 읽으므로, 호스트 쉘의 <code class="ic">&lt;</code> 리다이렉트로 내용을 넘긴다</li><li class="warn"><span class="lb">주의</span><code class="ic">-it</code>가 아니라 <code class="ic">-i</code>만 쓴다. <code class="ic">-i</code>는 표준입력을 컨테이너로 연결하고, <code class="ic">-t</code>는 터미널을 붙인다. 입력을 파일로 넘기면서 <code class="ic">-t</code>를 붙이면 <code class="ic">the input device is not a TTY</code>로 실패한다</li><li class="warn"><span class="lb">주의</span><code class="ic">docker restart</code>로는 유지되지만, 컨테이너를 지우고 다시 만들면(<code class="ic">docker rm</code>, compose 재생성, 이미지 업데이트) 사라진다. 계속 쓸 거면 Dockerfile에 <code class="ic">COPY</code> + <code class="ic">RUN keytool -importcert ...</code>로 넣는다</li><li class="rel"><span class="lb">연관</span>파일을 먼저 넣고 싶으면 <code class="ic">docker cp &lt;cert-file&gt; &lt;container&gt;:/tmp/</code> 후 <code class="ic">-file /tmp/&lt;cert-file&gt;</code>로 등록. 등록 뒤 <code class="ic">docker restart &lt;container&gt;</code></li></ul>
+    </article>
+</section>
+
+<section class="area" id="kubernetes" data-area="Kubernetes">
+  <h2>Kubernetes</h2>
+  <article class="cmd" id="kubernetes-pod-uid로-어떤-pod인지-찾기" data-search="kubernetes pod uid로 어떤 pod인지 찾기 crictl pods --label io.kubernetes.pod.uid=&lt;pod-uid&gt; 언제 노드의 `/var/lib/kubelet/pods/&lt;pod-uid&gt;` 디렉터리가 어느 pod의 것인지 알아내야 할 때. 디렉터리 이름이 pod uid다 주의 노드에서 실행한다. kubectl 권한이 없어도 컨테이너 런타임에 직접 물어볼 수 있다. 출력의 name, namespace 열로 pod를 특정한다 주의 `--label`은 kubelet이 pod sandbox에 붙여 둔 라벨로 거른다. `io.kubernetes.pod.uid`가 그 라벨 중 하나다 주의 결과가 비어 있으면 이미 지워진 pod가 남긴 디렉터리(orphan)일 수 있다">
+      <h3>Pod UID로 어떤 Pod인지 찾기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>crictl pods --label io.kubernetes.pod.uid=&lt;pod-uid&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>노드의 <code class="ic">/var/lib/kubelet/pods/&lt;pod-uid&gt;</code> 디렉터리가 어느 Pod의 것인지 알아내야 할 때. 디렉터리 이름이 Pod UID다</li><li class="warn"><span class="lb">주의</span>노드에서 실행한다. kubectl 권한이 없어도 컨테이너 런타임에 직접 물어볼 수 있다. 출력의 NAME, NAMESPACE 열로 Pod를 특정한다</li><li class="warn"><span class="lb">주의</span><code class="ic">--label</code>은 kubelet이 Pod sandbox에 붙여 둔 라벨로 거른다. <code class="ic">io.kubernetes.pod.uid</code>가 그 라벨 중 하나다</li><li class="warn"><span class="lb">주의</span>결과가 비어 있으면 이미 지워진 Pod가 남긴 디렉터리(orphan)일 수 있다</li></ul>
+    </article>
+<article class="cmd" id="kubernetes-pod-이름으로-uid-확인" data-search="kubernetes pod 이름으로 uid 확인 kubectl -n &lt;namespace&gt; get pod &lt;pod&gt; -o jsonpath='{.metadata.uid}{&quot;\n&quot;}' 언제 특정 pod의 kubelet 디렉터리(`/var/lib/kubelet/pods/&lt;pod-uid&gt;`)를 노드에서 찾아가야 할 때 주의 `{&quot;\n&quot;}`를 빼면 줄바꿈 없이 출력되어 프롬프트가 같은 줄에 붙는다 주의 pod를 삭제하고 다시 만들면(rollout, eviction 등) uid가 바뀐다. 컨테이너 재시작만으로는 바뀌지 않는다 연관 반대로 uid에서 pod를 찾을 때는 `crictl pods --label io.kubernetes.pod.uid=&lt;pod-uid&gt;`">
+      <h3>Pod 이름으로 UID 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl -n &lt;namespace&gt; get pod &lt;pod&gt; -o jsonpath='{.metadata.uid}{&quot;\n&quot;}'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>특정 Pod의 kubelet 디렉터리(<code class="ic">/var/lib/kubelet/pods/&lt;pod-uid&gt;</code>)를 노드에서 찾아가야 할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">{&quot;\n&quot;}</code>를 빼면 줄바꿈 없이 출력되어 프롬프트가 같은 줄에 붙는다</li><li class="warn"><span class="lb">주의</span>Pod를 삭제하고 다시 만들면(rollout, eviction 등) UID가 바뀐다. 컨테이너 재시작만으로는 바뀌지 않는다</li><li class="rel"><span class="lb">연관</span>반대로 UID에서 Pod를 찾을 때는 <code class="ic">crictl pods --label io.kubernetes.pod.uid=&lt;pod-uid&gt;</code></li></ul>
+    </article>
+<article class="cmd" id="kubernetes-네임스페이스의-pod-uid와-노드-한-번에-보기" data-search="kubernetes 네임스페이스의 pod uid와 노드 한 번에 보기 kubectl -n &lt;namespace&gt; get pods -o custom-columns=name:.metadata.name,uid:.metadata.uid,node:.spec.nodename 언제 여러 pod의 uid를 훑어보거나, 어느 노드의 kubelet 디렉터리를 봐야 하는지 같이 알아야 할 때 주의 `custom-columns`는 `헤더:json경로`를 쉼표로 이어 쓴다. 쉼표 앞뒤에 공백을 넣으면 안 된다">
+      <h3>네임스페이스의 Pod UID와 노드 한 번에 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl -n &lt;namespace&gt; get pods -o custom-columns=NAME:.metadata.name,UID:.metadata.uid,NODE:.spec.nodeName</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>여러 Pod의 UID를 훑어보거나, 어느 노드의 kubelet 디렉터리를 봐야 하는지 같이 알아야 할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">custom-columns</code>는 <code class="ic">헤더:JSON경로</code>를 쉼표로 이어 쓴다. 쉼표 앞뒤에 공백을 넣으면 안 된다</li></ul>
+    </article>
+<article class="cmd" id="kubernetes-노드에서-crictl로-pod-uid-확인" data-search="kubernetes 노드에서 crictl로 pod uid 확인 crictl pods --name &lt;pod&gt; -o json | grep '&quot;io.kubernetes.pod.uid&quot;' 언제 kubectl 권한 없이 노드에서 pod의 uid를 알아야 할 때 주의 기본 표 출력에는 uid가 없다. `-o json`으로 라벨까지 출력해야 보인다 주의 `--name`은 정확히 일치하는 이름만이 아니라 패턴으로 거른다. 이름이 비슷한 pod가 여러 개 걸릴 수 있다 연관 pod id를 이미 알면 `crictl inspectp &lt;pod-id&gt; | grep -m1 '&quot;uid&quot;'`">
+      <h3>노드에서 crictl로 Pod UID 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>crictl pods --name &lt;pod&gt; -o json | grep '&quot;io.kubernetes.pod.uid&quot;'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>kubectl 권한 없이 노드에서 Pod의 UID를 알아야 할 때</li><li class="warn"><span class="lb">주의</span>기본 표 출력에는 UID가 없다. <code class="ic">-o json</code>으로 라벨까지 출력해야 보인다</li><li class="warn"><span class="lb">주의</span><code class="ic">--name</code>은 정확히 일치하는 이름만이 아니라 패턴으로 거른다. 이름이 비슷한 Pod가 여러 개 걸릴 수 있다</li><li class="rel"><span class="lb">연관</span>Pod ID를 이미 알면 <code class="ic">crictl inspectp &lt;pod-id&gt; | grep -m1 '&quot;uid&quot;'</code></li></ul>
+    </article>
+<article class="cmd" id="kubernetes-cri-o-이미지-저장소-경로-확인" data-search="kubernetes cri-o 이미지 저장소 경로 확인 sudo crio config 2&gt;/dev/null | grep -e '^\s*(root|runroot|storage_driver) ' 언제 cri-o가 이미지를 어디에 저장하는지 알아야 할 때. skopeo나 podman으로 노드의 이미지를 직접 다룰 때 필요하다 주의 `crio config`는 현재 적용된 cri-o 설정 전체를 출력한다. `2&gt;/dev/null`은 부가 로그를 숨긴다 주의 `root`는 이미지 저장 경로, `runroot`는 실행 상태 경로, `storage_driver`는 스토리지 드라이버다. `storage_driver` 줄이 없으면 기본값(overlay)이다 연관 기본 경로(`/var/lib/containers/storage`)가 아니면 skopeo에 경로를 직접 넣어야 한다. [skopeo](skopeo.md#cri-o-노드에-있는-이미지를-레지스트리로-push)">
+      <h3>cri-o 이미지 저장소 경로 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo crio config 2&gt;/dev/null | grep -E '^\s*(root|runroot|storage_driver) '</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>cri-o가 이미지를 어디에 저장하는지 알아야 할 때. skopeo나 podman으로 노드의 이미지를 직접 다룰 때 필요하다</li><li class="warn"><span class="lb">주의</span><code class="ic">crio config</code>는 현재 적용된 cri-o 설정 전체를 출력한다. <code class="ic">2&gt;/dev/null</code>은 부가 로그를 숨긴다</li><li class="warn"><span class="lb">주의</span><code class="ic">root</code>는 이미지 저장 경로, <code class="ic">runroot</code>는 실행 상태 경로, <code class="ic">storage_driver</code>는 스토리지 드라이버다. <code class="ic">storage_driver</code> 줄이 없으면 기본값(overlay)이다</li><li class="rel"><span class="lb">연관</span>기본 경로(<code class="ic">/var/lib/containers/storage</code>)가 아니면 skopeo에 경로를 직접 넣어야 한다. [skopeo](skopeo.md#cri-o-노드에-있는-이미지를-레지스트리로-push)</li></ul>
+    </article>
+<article class="cmd" id="kubernetes-coredns-로그에서-업스트림-timeout-찾기" data-search="kubernetes coredns 로그에서 업스트림 timeout 찾기 kubectl -n kube-system logs -l k8s-app=kube-dns --timestamps --prefix --tail=500 | grep -i timeout 언제 pod에서 dns 조회가 실패하거나 느릴 때, coredns가 업스트림 dns로 넘긴 질의가 응답을 못 받는지 볼 때 주의 `-l k8s-app=kube-dns`는 coredns pod를 라벨로 고른다(deployment 이름이 coredns여도 라벨은 kube-dns). `--prefix`는 줄마다 어느 pod 로그인지, `--timestamps`는 언제 난 에러인지 붙인다. 시각이 없으면 지금도 나는 에러인지 과거 에러인지 구분이 안 된다 주의 라벨로 여러 pod를 고르면 `--tail` 기본값이 pod당 10줄로 줄어든다. 넉넉히 지정한다 주의 로그 형식은 `read udp &lt;coredns-pod-ip&gt;:&lt;port&gt;-&gt;&lt;upstream-ip&gt;:53: i/o timeout`이다. 질의 이름과 레코드 타입(a/aaaa), 어느 업스트림인지가 같이 찍힌다 주의 기동 직후 `&lt;숫자&gt;.&lt;숫자&gt;. hinfo` 질의가 timeout이면 loop 플러그인의 자가 점검 질의다. 이것까지 실패하면 업스트림 전체가 안 닿는 상태다 연관 corefile 확인은 `kubectl -n kube-system get cm coredns -o jsonpath='{.data.corefile}'`">
+      <h3>CoreDNS 로그에서 업스트림 timeout 찾기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl -n kube-system logs -l k8s-app=kube-dns --timestamps --prefix --tail=500 | grep -i timeout</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Pod에서 DNS 조회가 실패하거나 느릴 때, CoreDNS가 업스트림 DNS로 넘긴 질의가 응답을 못 받는지 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">-l k8s-app=kube-dns</code>는 CoreDNS Pod를 라벨로 고른다(Deployment 이름이 coredns여도 라벨은 kube-dns). <code class="ic">--prefix</code>는 줄마다 어느 Pod 로그인지, <code class="ic">--timestamps</code>는 언제 난 에러인지 붙인다. 시각이 없으면 지금도 나는 에러인지 과거 에러인지 구분이 안 된다</li><li class="warn"><span class="lb">주의</span>라벨로 여러 Pod를 고르면 <code class="ic">--tail</code> 기본값이 Pod당 10줄로 줄어든다. 넉넉히 지정한다</li><li class="warn"><span class="lb">주의</span>로그 형식은 <code class="ic">read udp &lt;coredns-pod-ip&gt;:&lt;port&gt;-&gt;&lt;upstream-ip&gt;:53: i/o timeout</code>이다. 질의 이름과 레코드 타입(A/AAAA), 어느 업스트림인지가 같이 찍힌다</li><li class="warn"><span class="lb">주의</span>기동 직후 <code class="ic">&lt;숫자&gt;.&lt;숫자&gt;. HINFO</code> 질의가 timeout이면 loop 플러그인의 자가 점검 질의다. 이것까지 실패하면 업스트림 전체가 안 닿는 상태다</li><li class="rel"><span class="lb">연관</span>Corefile 확인은 <code class="ic">kubectl -n kube-system get cm coredns -o jsonpath='{.data.Corefile}'</code></li></ul>
+    </article>
+<article class="cmd" id="kubernetes-coredns-설정corefile-확인" data-search="kubernetes coredns 설정(corefile) 확인 kubectl -n kube-system get cm coredns -o jsonpath='{.data.corefile}' 언제 coredns가 외부 질의를 어디로 넘기는지(forward), hosts 항목이 있는지 볼 때 주의 `forward . /etc/resolv.conf`는 노드의 `/etc/resolv.conf`가 아니라 **coredns pod 안의** resolv.conf를 읽는다. coredns는 `dnspolicy: default`라 kubelet이 pod 생성 시점에 노드 파일(kubelet `resolvconf` 설정)을 복사해 넣는다. 노드 파일을 고쳐도 coredns를 재시작해야 반영된다 연관 kubelet이 어떤 파일을 넘기는지는 `sudo grep -ie 'resolvconf|clusterdns|clusterdomain' -a2 /var/lib/kubelet/config.yaml`">
+      <h3>CoreDNS 설정(Corefile) 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl -n kube-system get cm coredns -o jsonpath='{.data.Corefile}'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>CoreDNS가 외부 질의를 어디로 넘기는지(forward), hosts 항목이 있는지 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">forward . /etc/resolv.conf</code>는 노드의 <code class="ic">/etc/resolv.conf</code>가 아니라 <strong>CoreDNS Pod 안의</strong> resolv.conf를 읽는다. CoreDNS는 <code class="ic">dnsPolicy: Default</code>라 kubelet이 Pod 생성 시점에 노드 파일(kubelet <code class="ic">resolvConf</code> 설정)을 복사해 넣는다. 노드 파일을 고쳐도 CoreDNS를 재시작해야 반영된다</li><li class="rel"><span class="lb">연관</span>kubelet이 어떤 파일을 넘기는지는 <code class="ic">sudo grep -iE 'resolvConf|clusterDNS|clusterDomain' -A2 /var/lib/kubelet/config.yaml</code></li></ul>
+    </article>
+<article class="cmd" id="kubernetes-kubelet의-dns-설정-확인" data-search="kubernetes kubelet의 dns 설정 확인 sudo grep -ie 'resolvconf|clusterdns|clusterdomain' -a2 /var/lib/kubelet/config.yaml 언제 pod의 resolv.conf가 어디서 오는지, 클러스터 dns ip와 도메인이 무엇인지 노드에서 볼 때 주의 `-a2`는 맞은 줄 뒤로 2줄 더 보여준다. `clusterdns`는 값이 다음 줄에 목록(`- 10.x.x.x`)으로 오기 때문에 필요하다 주의 `resolvconf` 줄이 없으면 기본값 `/etc/resolv.conf`를 쓴다. systemd-resolved를 쓰는 배포판에서 이 파일의 nameserver가 `127.0.0.53`이면 pod 안에서는 자기 자신을 가리켜 dns가 안 된다">
+      <h3>kubelet의 DNS 설정 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo grep -iE 'resolvConf|clusterDNS|clusterDomain' -A2 /var/lib/kubelet/config.yaml</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Pod의 resolv.conf가 어디서 오는지, 클러스터 DNS IP와 도메인이 무엇인지 노드에서 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">-A2</code>는 맞은 줄 뒤로 2줄 더 보여준다. <code class="ic">clusterDNS</code>는 값이 다음 줄에 목록(<code class="ic">- 10.x.x.x</code>)으로 오기 때문에 필요하다</li><li class="warn"><span class="lb">주의</span><code class="ic">resolvConf</code> 줄이 없으면 기본값 <code class="ic">/etc/resolv.conf</code>를 쓴다. systemd-resolved를 쓰는 배포판에서 이 파일의 nameserver가 <code class="ic">127.0.0.53</code>이면 Pod 안에서는 자기 자신을 가리켜 DNS가 안 된다</li></ul>
+    </article>
+<article class="cmd" id="kubernetes-임시-pod로-dns-경로-비교" data-search="kubernetes 임시 pod로 dns 경로 비교 kubectl run dnstest-tmp --rm -i --restart=never --image=&lt;image&gt; --image-pull-policy=ifnotpresent -- \
+  sh -c &quot;cat /etc/resolv.conf; nslookup &lt;name&gt; &lt;upstream-ip&gt;; nslookup &lt;name&gt; &lt;cluster-dns-ip&gt;&quot; 언제 pod 네트워크에서 업스트림 dns로 바로 질의하는 경우와 coredns를 거치는 경우를 나란히 비교할 때. 어느 구간이 막혔는지 가른다 주의 `--rm -i --restart=never`는 명령이 끝나면 pod를 지우는 일회성 실행이다. `-i`가 없으면 출력을 못 받는다 주의 `--image-pull-policy=ifnotpresent`는 노드에 이미 있는 이미지를 쓴다. 외부망이 막힌 클러스터에서는 노드에 있는 busybox 같은 이미지를 골라야 뜬다 주의 `nslookup &lt;name&gt; &lt;server&gt;`처럼 서버를 지정하면 pod의 resolv.conf를 거치지 않고 그 서버로 바로 질의한다. busybox nslookup은 a와 aaaa를 같이 물어서, aaaa가 없으면 `can't find ... no answer`가 함께 찍힌다. a 결과가 나왔으면 정상이다 주의 손으로 하는 질의는 이름 하나만 물어본다. 실제 앱은 search 도메인을 붙인 이름과 aaaa까지 여러 번 묻기 때문에, 이게 성공해도 앱 쪽 질의는 실패할 수 있다 연관 노드에 있는 이미지 목록은 `sudo crictl images | grep -ie 'busybox|dnsutil|netshoot'`">
+      <h3>임시 Pod로 DNS 경로 비교</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl run dnstest-tmp --rm -i --restart=Never --image=&lt;image&gt; --image-pull-policy=IfNotPresent -- \
+  sh -c &quot;cat /etc/resolv.conf; nslookup &lt;name&gt; &lt;upstream-ip&gt;; nslookup &lt;name&gt; &lt;cluster-dns-ip&gt;&quot;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Pod 네트워크에서 업스트림 DNS로 바로 질의하는 경우와 CoreDNS를 거치는 경우를 나란히 비교할 때. 어느 구간이 막혔는지 가른다</li><li class="warn"><span class="lb">주의</span><code class="ic">--rm -i --restart=Never</code>는 명령이 끝나면 Pod를 지우는 일회성 실행이다. <code class="ic">-i</code>가 없으면 출력을 못 받는다</li><li class="warn"><span class="lb">주의</span><code class="ic">--image-pull-policy=IfNotPresent</code>는 노드에 이미 있는 이미지를 쓴다. 외부망이 막힌 클러스터에서는 노드에 있는 busybox 같은 이미지를 골라야 뜬다</li><li class="warn"><span class="lb">주의</span><code class="ic">nslookup &lt;name&gt; &lt;server&gt;</code>처럼 서버를 지정하면 Pod의 resolv.conf를 거치지 않고 그 서버로 바로 질의한다. busybox nslookup은 A와 AAAA를 같이 물어서, AAAA가 없으면 <code class="ic">Can't find ... No answer</code>가 함께 찍힌다. A 결과가 나왔으면 정상이다</li><li class="warn"><span class="lb">주의</span>손으로 하는 질의는 이름 하나만 물어본다. 실제 앱은 search 도메인을 붙인 이름과 AAAA까지 여러 번 묻기 때문에, 이게 성공해도 앱 쪽 질의는 실패할 수 있다</li><li class="rel"><span class="lb">연관</span>노드에 있는 이미지 목록은 <code class="ic">sudo crictl images | grep -iE 'busybox|dnsutil|netshoot'</code></li></ul>
+    </article>
+<article class="cmd" id="kubernetes-노드에-이미-있는-이미지-찾기" data-search="kubernetes 노드에 이미 있는 이미지 찾기 sudo crictl images | grep -ie '&lt;pattern&gt;' 언제 외부망이 막힌 클러스터에서 디버그용 pod를 띄울 이미지를 고를 때 주의 컨테이너 런타임(containerd, cri-o)에 직접 묻는 것이라 노드별로 결과가 다르다. pod가 다른 노드에 뜨면 그 노드에도 이미지가 있어야 한다 연관 고른 이미지는 `--image-pull-policy=ifnotpresent`로 띄운다">
+      <h3>노드에 이미 있는 이미지 찾기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo crictl images | grep -iE '&lt;pattern&gt;'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>외부망이 막힌 클러스터에서 디버그용 Pod를 띄울 이미지를 고를 때</li><li class="warn"><span class="lb">주의</span>컨테이너 런타임(containerd, cri-o)에 직접 묻는 것이라 노드별로 결과가 다르다. Pod가 다른 노드에 뜨면 그 노드에도 이미지가 있어야 한다</li><li class="rel"><span class="lb">연관</span>고른 이미지는 <code class="ic">--image-pull-policy=IfNotPresent</code>로 띄운다</li></ul>
+    </article>
+<article class="cmd" id="kubernetes-pod-컨테이너별-준비-상태재시작직전-종료-사유-보기" data-search="kubernetes pod 컨테이너별 준비 상태·재시작·직전 종료 사유 보기 kubectl -n &lt;namespace&gt; get pod &lt;pod&gt; -o jsonpath='{range .status.containerstatuses[*]}{.name} ready={.ready} restarts={.restartcount} {.laststate.terminated.reason} {.laststate.terminated.exitcode}{&quot;\n&quot;}{end}' 언제 `2/3 running`처럼 일부 컨테이너만 안 뜰 때, 어느 컨테이너가 몇 번 왜 죽었는지 한 줄씩 볼 때 주의 `{range ...}{end}`는 목록을 돌며 반복 출력한다. `{&quot;\n&quot;}`가 없으면 한 줄에 다 붙는다 주의 종료 사유가 `completed`, exit 0인데 재시작이 계속되면 프로세스가 스스로 죽은 게 아니라 liveness probe 실패로 kubelet이 내린 것일 수 있다. 이벤트를 같이 본다 연관 이전 컨테이너 로그는 `kubectl -n &lt;namespace&gt; logs &lt;pod&gt; -c &lt;container&gt; --previous`">
+      <h3>Pod 컨테이너별 준비 상태·재시작·직전 종료 사유 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl -n &lt;namespace&gt; get pod &lt;pod&gt; -o jsonpath='{range .status.containerStatuses[*]}{.name} ready={.ready} restarts={.restartCount} {.lastState.terminated.reason} {.lastState.terminated.exitCode}{&quot;\n&quot;}{end}'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">2/3 Running</code>처럼 일부 컨테이너만 안 뜰 때, 어느 컨테이너가 몇 번 왜 죽었는지 한 줄씩 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">{range ...}{end}</code>는 목록을 돌며 반복 출력한다. <code class="ic">{&quot;\n&quot;}</code>가 없으면 한 줄에 다 붙는다</li><li class="warn"><span class="lb">주의</span>종료 사유가 <code class="ic">Completed</code>, exit 0인데 재시작이 계속되면 프로세스가 스스로 죽은 게 아니라 liveness probe 실패로 kubelet이 내린 것일 수 있다. 이벤트를 같이 본다</li><li class="rel"><span class="lb">연관</span>이전 컨테이너 로그는 <code class="ic">kubectl -n &lt;namespace&gt; logs &lt;pod&gt; -c &lt;container&gt; --previous</code></li></ul>
+    </article>
+<article class="cmd" id="kubernetes-재시작-전-컨테이너-로그-보기" data-search="kubernetes 재시작 전 컨테이너 로그 보기 kubectl -n &lt;namespace&gt; logs &lt;pod&gt; -c &lt;container&gt; --previous --tail=50 언제 컨테이너가 재시작을 반복할 때, 죽기 직전에 무엇을 찍었는지 볼 때 주의 `-c`는 멀티 컨테이너 pod에서 필수다. 빠뜨리면 컨테이너를 고르라는 에러가 난다 주의 `--previous`는 직전 한 번의 컨테이너 로그만 남아 있다. 그보다 이전 로그는 없다 주의 로그가 특정 줄에서 멈추고 아무것도 안 찍힌다면 프로세스가 멈춰 있는(hang) 것일 수 있다. 이때는 `kubectl exec`도 멈출 수 있으니 노드에서 프로세스 상태를 본다. [linux](linux.md#d-state로-멈춘-프로세스-찾기)">
+      <h3>재시작 전 컨테이너 로그 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl -n &lt;namespace&gt; logs &lt;pod&gt; -c &lt;container&gt; --previous --tail=50</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>컨테이너가 재시작을 반복할 때, 죽기 직전에 무엇을 찍었는지 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">-c</code>는 멀티 컨테이너 Pod에서 필수다. 빠뜨리면 컨테이너를 고르라는 에러가 난다</li><li class="warn"><span class="lb">주의</span><code class="ic">--previous</code>는 직전 한 번의 컨테이너 로그만 남아 있다. 그보다 이전 로그는 없다</li><li class="warn"><span class="lb">주의</span>로그가 특정 줄에서 멈추고 아무것도 안 찍힌다면 프로세스가 멈춰 있는(hang) 것일 수 있다. 이때는 <code class="ic">kubectl exec</code>도 멈출 수 있으니 노드에서 프로세스 상태를 본다. [linux](linux.md#d-state로-멈춘-프로세스-찾기)</li></ul>
+    </article>
+<article class="cmd" id="kubernetes-네임스페이스-이벤트를-시간순으로-보기" data-search="kubernetes 네임스페이스 이벤트를 시간순으로 보기 kubectl -n &lt;namespace&gt; get events --sort-by=.lasttimestamp | tail -20 언제 probe 실패, 재시작, 스케줄링 실패처럼 pod에 무슨 일이 있었는지 최근 순서로 볼 때 주의 기본 출력은 시간순이 아니다. `--sort-by=.lasttimestamp`로 정렬해야 맨 아래가 최신이다 주의 이벤트는 보통 1시간 정도만 보관된다. 오래된 일은 안 보인다 주의 `readiness probe failed:` 뒤에 내용이 비어 있으면 probe 명령이 출력 없이 timeout 났다는 뜻일 수 있다">
+      <h3>네임스페이스 이벤트를 시간순으로 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl -n &lt;namespace&gt; get events --sort-by=.lastTimestamp | tail -20</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>probe 실패, 재시작, 스케줄링 실패처럼 Pod에 무슨 일이 있었는지 최근 순서로 볼 때</li><li class="warn"><span class="lb">주의</span>기본 출력은 시간순이 아니다. <code class="ic">--sort-by=.lastTimestamp</code>로 정렬해야 맨 아래가 최신이다</li><li class="warn"><span class="lb">주의</span>이벤트는 보통 1시간 정도만 보관된다. 오래된 일은 안 보인다</li><li class="warn"><span class="lb">주의</span><code class="ic">Readiness probe failed:</code> 뒤에 내용이 비어 있으면 probe 명령이 출력 없이 timeout 났다는 뜻일 수 있다</li></ul>
+    </article>
+<article class="cmd" id="kubernetes-컨테이너-probe리소스-설정-보기" data-search="kubernetes 컨테이너 probe·리소스 설정 보기 kubectl -n &lt;namespace&gt; get &lt;kind&gt; &lt;name&gt; -o jsonpath='{range .spec.template.spec.containers[*]}{.name}: l={.livenessprobe} r={.readinessprobe} res={.resources}{&quot;\n&quot;}{end}' 언제 컨테이너가 probe 실패로 재시작될 때, probe 명령과 timeout·실패 허용 횟수를 확인할 때 주의 `&lt;kind&gt;`에는 deployment, statefulset, daemonset을 넣는다. pod를 직접 볼 때는 경로가 `.spec.containers[*]`로 바뀐다 주의 `initialdelayseconds`, `timeoutseconds`, `failurethreshold`를 같이 본다. 기동이 느린 앱은 첫 확인 전 대기 시간이 짧으면 계속 재시작된다">
+      <h3>컨테이너 probe·리소스 설정 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl -n &lt;namespace&gt; get &lt;kind&gt; &lt;name&gt; -o jsonpath='{range .spec.template.spec.containers[*]}{.name}: L={.livenessProbe} R={.readinessProbe} RES={.resources}{&quot;\n&quot;}{end}'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>컨테이너가 probe 실패로 재시작될 때, probe 명령과 timeout·실패 허용 횟수를 확인할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">&lt;kind&gt;</code>에는 deployment, statefulset, daemonset을 넣는다. Pod를 직접 볼 때는 경로가 <code class="ic">.spec.containers[*]</code>로 바뀐다</li><li class="warn"><span class="lb">주의</span><code class="ic">initialDelaySeconds</code>, <code class="ic">timeoutSeconds</code>, <code class="ic">failureThreshold</code>를 같이 본다. 기동이 느린 앱은 첫 확인 전 대기 시간이 짧으면 계속 재시작된다</li></ul>
+    </article>
+<article class="cmd" id="kubernetes-running이-아닌-pod만-보기" data-search="kubernetes running이 아닌 pod만 보기 kubectl get pod -a --field-selector=status.phase!=running | grep -v completed 언제 클러스터 전체에서 문제 있는 pod만 빠르게 추릴 때 주의 `--field-selector`는 서버 쪽에서 거른다. `status.phase`는 pending/running/succeeded/failed/unknown만 갖는다 주의 `crashloopbackoff`나 `2/3 running`인 pod는 phase가 running이라 여기 안 걸린다. ready 열을 따로 봐야 한다">
+      <h3>Running이 아닌 Pod만 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl get pod -A --field-selector=status.phase!=Running | grep -v Completed</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>클러스터 전체에서 문제 있는 Pod만 빠르게 추릴 때</li><li class="warn"><span class="lb">주의</span><code class="ic">--field-selector</code>는 서버 쪽에서 거른다. <code class="ic">status.phase</code>는 Pending/Running/Succeeded/Failed/Unknown만 갖는다</li><li class="warn"><span class="lb">주의</span><code class="ic">CrashLoopBackOff</code>나 <code class="ic">2/3 Running</code>인 Pod는 phase가 Running이라 여기 안 걸린다. READY 열을 따로 봐야 한다</li></ul>
+    </article>
+<article class="cmd" id="kubernetes-deployment가-언제-재시작변경됐는지-보기" data-search="kubernetes deployment가 언제 재시작·변경됐는지 보기 kubectl -n &lt;namespace&gt; get rs -l &lt;label-selector&gt;
+kubectl -n &lt;namespace&gt; get deploy &lt;deploy&gt; -o jsonpath='{.spec.template.metadata.annotations}{&quot;\n&quot;}' 언제 에러가 시작된 시점과 deployment 변경·재시작 시점을 맞춰볼 때 주의 replicaset의 age가 각 변경(설정 수정·rollout restart)이 일어난 시각이다. desired가 0인 것은 이전 버전이다 주의 `kubectl rollout restart`를 쓰면 annotation에 `kubectl.kubernetes.io/restartedat`이 남는다">
+      <h3>Deployment가 언제 재시작·변경됐는지 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>kubectl -n &lt;namespace&gt; get rs -l &lt;label-selector&gt;
+kubectl -n &lt;namespace&gt; get deploy &lt;deploy&gt; -o jsonpath='{.spec.template.metadata.annotations}{&quot;\n&quot;}'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>에러가 시작된 시점과 Deployment 변경·재시작 시점을 맞춰볼 때</li><li class="warn"><span class="lb">주의</span>ReplicaSet의 AGE가 각 변경(설정 수정·rollout restart)이 일어난 시각이다. DESIRED가 0인 것은 이전 버전이다</li><li class="warn"><span class="lb">주의</span><code class="ic">kubectl rollout restart</code>를 쓰면 annotation에 <code class="ic">kubectl.kubernetes.io/restartedAt</code>이 남는다</li></ul>
+    </article>
+<article class="cmd" id="kubernetes-pvc가-실제로-어디에-저장되는지-보기" data-search="kubernetes pvc가 실제로 어디에 저장되는지 보기 for pv in $(kubectl -n &lt;namespace&gt; get pvc -o jsonpath='{.items[*].spec.volumename}'); do
+  kubectl get pv $pv -o jsonpath='{.metadata.name} {.spec.storageclassname} {.spec.nfs} {.spec.hostpath} {.spec.local} {.spec.csi.driver}{&quot;\n&quot;}'
+done 언제 pod가 i/o에서 멈춘 것 같을 때, 볼륨이 nfs인지 노드 로컬 경로인지 csi인지 가를 때 주의 볼륨 종류에 따라 값이 들어가는 필드가 다르다. 해당 없는 필드는 빈 값으로 나온다">
+      <h3>PVC가 실제로 어디에 저장되는지 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>for pv in $(kubectl -n &lt;namespace&gt; get pvc -o jsonpath='{.items[*].spec.volumeName}'); do
+  kubectl get pv $pv -o jsonpath='{.metadata.name} {.spec.storageClassName} {.spec.nfs} {.spec.hostPath} {.spec.local} {.spec.csi.driver}{&quot;\n&quot;}'
+done</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Pod가 I/O에서 멈춘 것 같을 때, 볼륨이 NFS인지 노드 로컬 경로인지 CSI인지 가를 때</li><li class="warn"><span class="lb">주의</span>볼륨 종류에 따라 값이 들어가는 필드가 다르다. 해당 없는 필드는 빈 값으로 나온다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="linux" data-area="Linux 프로세스·커널">
+  <h2>Linux 프로세스·커널</h2>
+  <article class="cmd" id="linux-d-state로-멈춘-프로세스-찾기" data-search="linux 프로세스·커널 d state로 멈춘 프로세스 찾기 for f in /proc/[0-9]*/stat; do
+  s=$(timeout 1 cat $f 2&gt;/dev/null) || continue
+  set -- $s; [ &quot;$3&quot; = d ] &amp;&amp; echo &quot;$1 $2 d&quot;
+done 언제 `ps`, `top`, `pgrep`, `kubectl exec`가 응답 없이 멈출 때. 커널 안에서 대기하다 깨어나지 못한 프로세스가 있는지 찾는다 주의 d state(uninterruptible sleep)는 i/o나 커널 락을 기다리는 상태라 `kill -9`로도 죽지 않는다. 기다리는 대상이 끝내 안 풀리면 재부팅해야 정리된다 주의 `ps`가 멈추는 이유는 이런 프로세스의 `/proc/&lt;pid&gt;/cmdline`을 읽으려다 같은 메모리 락에 걸리기 때문이다. `/proc/&lt;pid&gt;/stat`은 그 락 없이 읽혀서 이 방법은 멈추지 않는다. `timeout 1`은 혹시 걸려도 1초 뒤 넘어가게 하는 안전장치다 주의 `stat`의 2번째 칸이 `(프로세스명)`, 3번째 칸이 상태 문자다. 프로세스명에 공백이 있으면 칸이 밀린다 연관 어디서 멈췄는지는 `sudo cat /proc/&lt;pid&gt;/stack`">
+      <h3>D state로 멈춘 프로세스 찾기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>for f in /proc/[0-9]*/stat; do
+  s=$(timeout 1 cat $f 2&gt;/dev/null) || continue
+  set -- $s; [ &quot;$3&quot; = D ] &amp;&amp; echo &quot;$1 $2 D&quot;
+done</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">ps</code>, <code class="ic">top</code>, <code class="ic">pgrep</code>, <code class="ic">kubectl exec</code>가 응답 없이 멈출 때. 커널 안에서 대기하다 깨어나지 못한 프로세스가 있는지 찾는다</li><li class="warn"><span class="lb">주의</span>D state(uninterruptible sleep)는 I/O나 커널 락을 기다리는 상태라 <code class="ic">kill -9</code>로도 죽지 않는다. 기다리는 대상이 끝내 안 풀리면 재부팅해야 정리된다</li><li class="warn"><span class="lb">주의</span><code class="ic">ps</code>가 멈추는 이유는 이런 프로세스의 <code class="ic">/proc/&lt;pid&gt;/cmdline</code>을 읽으려다 같은 메모리 락에 걸리기 때문이다. <code class="ic">/proc/&lt;pid&gt;/stat</code>은 그 락 없이 읽혀서 이 방법은 멈추지 않는다. <code class="ic">timeout 1</code>은 혹시 걸려도 1초 뒤 넘어가게 하는 안전장치다</li><li class="warn"><span class="lb">주의</span><code class="ic">stat</code>의 2번째 칸이 <code class="ic">(프로세스명)</code>, 3번째 칸이 상태 문자다. 프로세스명에 공백이 있으면 칸이 밀린다</li><li class="rel"><span class="lb">연관</span>어디서 멈췄는지는 <code class="ic">sudo cat /proc/&lt;pid&gt;/stack</code></li></ul>
+    </article>
+<article class="cmd" id="linux-프로세스가-커널-어디서-멈췄는지-보기" data-search="linux 프로세스·커널 프로세스가 커널 어디서 멈췄는지 보기 sudo cat /proc/&lt;pid&gt;/stack
+cat /proc/&lt;pid&gt;/wchan; echo
+awk '/^(state|vmrss|threads)/' /proc/&lt;pid&gt;/status 언제 d state 프로세스가 무엇을 기다리는지 가릴 때. 디스크·nfs i/o인지, 메모리 관리 쪽 락인지 주의 `stack`은 root 권한이 필요하다. 맨 위 함수가 대기 지점이다. 스택의 함수 이름으로 커널 버그 리포트를 검색할 수 있다 주의 `wchan`이 0이어도 `stack`에는 내용이 나올 수 있다 주의 스택에 `nfs_`, `rpc_`가 있으면 nfs 서버 응답 대기, `migration_entry_wait`나 `collapse_huge_page`는 메모리 페이지 이동이나 thp(huge page 자동 병합) 쪽 대기다">
+      <h3>프로세스가 커널 어디서 멈췄는지 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo cat /proc/&lt;pid&gt;/stack
+cat /proc/&lt;pid&gt;/wchan; echo
+awk '/^(State|VmRSS|Threads)/' /proc/&lt;pid&gt;/status</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>D state 프로세스가 무엇을 기다리는지 가릴 때. 디스크·NFS I/O인지, 메모리 관리 쪽 락인지</li><li class="warn"><span class="lb">주의</span><code class="ic">stack</code>은 root 권한이 필요하다. 맨 위 함수가 대기 지점이다. 스택의 함수 이름으로 커널 버그 리포트를 검색할 수 있다</li><li class="warn"><span class="lb">주의</span><code class="ic">wchan</code>이 0이어도 <code class="ic">stack</code>에는 내용이 나올 수 있다</li><li class="warn"><span class="lb">주의</span>스택에 <code class="ic">nfs_</code>, <code class="ic">rpc_</code>가 있으면 NFS 서버 응답 대기, <code class="ic">migration_entry_wait</code>나 <code class="ic">collapse_huge_page</code>는 메모리 페이지 이동이나 THP(huge page 자동 병합) 쪽 대기다</li></ul>
+    </article>
+<article class="cmd" id="linux-프로세스-시작-시각-확인" data-search="linux 프로세스·커널 프로세스 시작 시각 확인 sudo ls -ld --time-style=+%f_%t /proc/&lt;pid&gt; 언제 `ps`가 멈춰서 쓸 수 없을 때, 멈춘 프로세스가 언제부터 떠 있었는지 볼 때 주의 `/proc/&lt;pid&gt;` 디렉터리의 시각은 프로세스가 만들어진 시각으로 쓸 수 있다. `--time-style=+%f_%t`는 `2026-01-01_12:00:00` 형식으로 보여준다">
+      <h3>프로세스 시작 시각 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo ls -ld --time-style=+%F_%T /proc/&lt;pid&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">ps</code>가 멈춰서 쓸 수 없을 때, 멈춘 프로세스가 언제부터 떠 있었는지 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">/proc/&lt;pid&gt;</code> 디렉터리의 시각은 프로세스가 만들어진 시각으로 쓸 수 있다. <code class="ic">--time-style=+%F_%T</code>는 <code class="ic">2026-01-01_12:00:00</code> 형식으로 보여준다</li></ul>
+    </article>
+<article class="cmd" id="linux-thptransparent-huge-page-설정-확인" data-search="linux 프로세스·커널 thp(transparent huge page) 설정 확인 cat /sys/kernel/mm/transparent_hugepage/enabled /sys/kernel/mm/transparent_hugepage/defrag 언제 redis·db 같은 메모리 집약 프로세스가 지연되거나, `khugepaged`가 d state일 때 주의 대괄호로 감싼 값이 현재 설정이다. `[always]`면 커널이 4kb 페이지를 2mb 단위로 자동 병합한다. 병합하려고 페이지를 옮기는 동안 그 메모리를 쓰는 프로세스가 기다린다 주의 redis는 공식 문서에서 thp를 끄라고 권장한다">
+      <h3>THP(Transparent Huge Page) 설정 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>cat /sys/kernel/mm/transparent_hugepage/enabled /sys/kernel/mm/transparent_hugepage/defrag</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Redis·DB 같은 메모리 집약 프로세스가 지연되거나, <code class="ic">khugepaged</code>가 D state일 때</li><li class="warn"><span class="lb">주의</span>대괄호로 감싼 값이 현재 설정이다. <code class="ic">[always]</code>면 커널이 4KB 페이지를 2MB 단위로 자동 병합한다. 병합하려고 페이지를 옮기는 동안 그 메모리를 쓰는 프로세스가 기다린다</li><li class="warn"><span class="lb">주의</span>Redis는 공식 문서에서 THP를 끄라고 권장한다</li></ul>
+    </article>
+<article class="cmd" id="linux-커널-메시지에서-hung-taskoom-찾기" data-search="linux 프로세스·커널 커널 메시지에서 hung task·oom 찾기 sudo dmesg -t | grep -ie 'hung_task|blocked for more|oom|&lt;pattern&gt;' | tail -20 언제 프로세스가 멈췄거나 죽었을 때 커널이 남긴 경고를 볼 때 주의 `-t`는 사람이 읽는 시각으로 바꿔 보여준다. 다만 서스펜드 등이 있었으면 시각이 어긋날 수 있다 주의 결과가 비어 있어도 문제가 없다는 뜻은 아니다. hung task 경고는 `kernel.hung_task_timeout_secs`(기본 120초)를 넘겨야 찍히고, 링 버퍼가 차면 오래된 메시지는 사라진다">
+      <h3>커널 메시지에서 hung task·OOM 찾기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo dmesg -T | grep -iE 'hung_task|blocked for more|oom|&lt;pattern&gt;' | tail -20</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>프로세스가 멈췄거나 죽었을 때 커널이 남긴 경고를 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">-T</code>는 사람이 읽는 시각으로 바꿔 보여준다. 다만 서스펜드 등이 있었으면 시각이 어긋날 수 있다</li><li class="warn"><span class="lb">주의</span>결과가 비어 있어도 문제가 없다는 뜻은 아니다. hung task 경고는 <code class="ic">kernel.hung_task_timeout_secs</code>(기본 120초)를 넘겨야 찍히고, 링 버퍼가 차면 오래된 메시지는 사라진다</li></ul>
+    </article>
+<article class="cmd" id="linux-conntrack-테이블-사용량-확인" data-search="linux 프로세스·커널 conntrack 테이블 사용량 확인 sudo cat /proc/sys/net/netfilter/nf_conntrack_count /proc/sys/net/netfilter/nf_conntrack_max 언제 udp(dns 등) 패킷이 간헐적으로 사라질 때 연결 추적 테이블이 꽉 찼는지 볼 때 주의 첫 줄이 현재 개수, 둘째 줄이 최대값이다. 최대값에 가까우면 새 연결이 버려지고 dmesg에 `nf_conntrack: table full`이 찍힌다">
+      <h3>conntrack 테이블 사용량 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo cat /proc/sys/net/netfilter/nf_conntrack_count /proc/sys/net/netfilter/nf_conntrack_max</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>UDP(DNS 등) 패킷이 간헐적으로 사라질 때 연결 추적 테이블이 꽉 찼는지 볼 때</li><li class="warn"><span class="lb">주의</span>첫 줄이 현재 개수, 둘째 줄이 최대값이다. 최대값에 가까우면 새 연결이 버려지고 dmesg에 <code class="ic">nf_conntrack: table full</code>이 찍힌다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="loki" data-area="Loki">
+  <h2>Loki</h2>
+  <article class="cmd" id="loki-로그-보존-기간retention-설정-확인" data-search="loki 로그 보존 기간(retention) 설정 확인 cat /etc/loki/loki.yaml | grep retention 언제 loki 로그가 언제 지워지는지, 아니면 무제한으로 쌓이는지 확인할 때 주의 loki 파드 안에서 실행한다(`kubectl exec`). 설정 파일 경로는 설치 방식에 따라 다르다. 컨테이너 실행 인자의 `-config.file=` 값을 보면 알 수 있다 주의 `retention_deletes_enabled: false`와 `retention_period: 0s`가 나오면 삭제가 꺼져 있고 보존 기간도 무제한이다. 이 두 항목은 예전 방식인 `table_manager`의 설정이다 주의 파일에 적히지 않은 항목은 기본값으로 동작한다. compactor 방식의 `retention_enabled`는 grep에 안 나와도 기본값 `false`로 꺼져 있다">
+      <h3>로그 보존 기간(retention) 설정 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>cat /etc/loki/loki.yaml | grep retention</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Loki 로그가 언제 지워지는지, 아니면 무제한으로 쌓이는지 확인할 때</li><li class="warn"><span class="lb">주의</span>Loki 파드 안에서 실행한다(<code class="ic">kubectl exec</code>). 설정 파일 경로는 설치 방식에 따라 다르다. 컨테이너 실행 인자의 <code class="ic">-config.file=</code> 값을 보면 알 수 있다</li><li class="warn"><span class="lb">주의</span><code class="ic">retention_deletes_enabled: false</code>와 <code class="ic">retention_period: 0s</code>가 나오면 삭제가 꺼져 있고 보존 기간도 무제한이다. 이 두 항목은 예전 방식인 <code class="ic">table_manager</code>의 설정이다</li><li class="warn"><span class="lb">주의</span>파일에 적히지 않은 항목은 기본값으로 동작한다. compactor 방식의 <code class="ic">retention_enabled</code>는 grep에 안 나와도 기본값 <code class="ic">false</code>로 꺼져 있다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="nginx" data-area="Nginx">
+  <h2>Nginx</h2>
+  <article class="cmd" id="nginx-적용-중인-설정-전체-보기" data-search="nginx 적용 중인 설정 전체 보기 sudo nginx -t -c &lt;nginx-conf&gt; 2&gt;/dev/null | grep -ne 'listen|server_name|location|limit_except|allow|deny|proxy_pass' 언제 어느 포트·도메인의 server 블록에 어떤 location이 있고 어디로 프록시되는지, 넣은 접근 제어가 실제로 들어갔는지 볼 때 주의 대문자 `-t`는 문법 검사 후 **include된 파일까지 합친 전체 설정을 출력**한다. 소문자 `-t`는 검사 결과만 보여 준다 주의 `-c`는 메인 설정 파일을 지정한다. 빼면 빌드 때 정해진 기본 경로를 읽는데, 그 파일이 실제로 쓰이는 설정이 아닐 수 있다 주의 `2&gt;/dev/null`은 검사 결과 메시지(stderr)를 숨기고 설정 내용만 grep으로 넘긴다. `-n`은 줄 번호를 붙인다 연관 gitlab 번들 nginx는 바이너리와 설정 경로가 다르다. [gitlab](gitlab.md#번들-nginx-설정-문법-검사) 참고">
+      <h3>적용 중인 설정 전체 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo nginx -T -c &lt;nginx-conf&gt; 2&gt;/dev/null | grep -nE 'listen|server_name|location|limit_except|allow|deny|proxy_pass'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>어느 포트·도메인의 server 블록에 어떤 location이 있고 어디로 프록시되는지, 넣은 접근 제어가 실제로 들어갔는지 볼 때</li><li class="warn"><span class="lb">주의</span>대문자 <code class="ic">-T</code>는 문법 검사 후 <strong>include된 파일까지 합친 전체 설정을 출력</strong>한다. 소문자 <code class="ic">-t</code>는 검사 결과만 보여 준다</li><li class="warn"><span class="lb">주의</span><code class="ic">-c</code>는 메인 설정 파일을 지정한다. 빼면 빌드 때 정해진 기본 경로를 읽는데, 그 파일이 실제로 쓰이는 설정이 아닐 수 있다</li><li class="warn"><span class="lb">주의</span><code class="ic">2&gt;/dev/null</code>은 검사 결과 메시지(stderr)를 숨기고 설정 내용만 grep으로 넘긴다. <code class="ic">-n</code>은 줄 번호를 붙인다</li><li class="rel"><span class="lb">연관</span>GitLab 번들 Nginx는 바이너리와 설정 경로가 다르다. [gitlab](gitlab.md#번들-nginx-설정-문법-검사) 참고</li></ul>
+    </article>
+<article class="cmd" id="nginx-설정-문법-검사" data-search="nginx 설정 문법 검사 sudo nginx -t -c &lt;nginx-conf&gt; 언제 설정을 고친 뒤 반영하기 전에 항상 주의 출력 첫 줄에 나온 경로가 **실제로 쓰는 설정 파일인지** 확인한다. `-c` 없이 실행하면 쓰이지 않는 기본 파일을 검사하고도 `syntax is ok`가 나올 수 있다 주의 include한 파일을 못 읽으면 `open() &quot;&lt;경로&gt;&quot; failed (2: no such file or directory)` 또는 `(13: permission denied)`가 나온다. selinux가 켜진 서버에서는 경로가 맞아도 13이 나올 수 있다">
+      <h3>설정 문법 검사</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo nginx -t -c &lt;nginx-conf&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>설정을 고친 뒤 반영하기 전에 항상</li><li class="warn"><span class="lb">주의</span>출력 첫 줄에 나온 경로가 <strong>실제로 쓰는 설정 파일인지</strong> 확인한다. <code class="ic">-c</code> 없이 실행하면 쓰이지 않는 기본 파일을 검사하고도 <code class="ic">syntax is ok</code>가 나올 수 있다</li><li class="warn"><span class="lb">주의</span>include한 파일을 못 읽으면 <code class="ic">open() &quot;&lt;경로&gt;&quot; failed (2: No such file or directory)</code> 또는 <code class="ic">(13: Permission denied)</code>가 나온다. SELinux가 켜진 서버에서는 경로가 맞아도 13이 나올 수 있다</li></ul>
+    </article>
+<article class="cmd" id="nginx-설정-무중단-반영" data-search="nginx 설정 무중단 반영 sudo nginx -s reload 언제 설정을 바꾸고 연결을 끊지 않고 반영할 때 주의 `-s reload`는 마스터 프로세스에 설정을 다시 읽으라는 신호를 보낸다. 기존 연결은 마무리될 때까지 유지되고 새 요청부터 새 설정이 적용된다. 재기동(restart)은 진행 중인 연결이 끊긴다 주의 systemd로 관리한다면 `sudo systemctl reload nginx`도 같은 동작이다 연관 먼저 &quot;설정 문법 검사&quot;를 통과시킨다">
+      <h3>설정 무중단 반영</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo nginx -s reload</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>설정을 바꾸고 연결을 끊지 않고 반영할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">-s reload</code>는 마스터 프로세스에 설정을 다시 읽으라는 신호를 보낸다. 기존 연결은 마무리될 때까지 유지되고 새 요청부터 새 설정이 적용된다. 재기동(restart)은 진행 중인 연결이 끊긴다</li><li class="warn"><span class="lb">주의</span>systemd로 관리한다면 <code class="ic">sudo systemctl reload nginx</code>도 같은 동작이다</li><li class="rel"><span class="lb">연관</span>먼저 &quot;설정 문법 검사&quot;를 통과시킨다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="prometheus" data-area="Prometheus / PromQL">
+  <h2>Prometheus / PromQL</h2>
+  <article class="cmd" id="prometheus-삭제된-pod의-재시작-횟수-확인" data-search="prometheus / promql 삭제된 pod의 재시작 횟수 확인 max_over_time(kube_pod_container_status_restarts_total{namespace=&quot;&lt;namespace&gt;&quot;, pod=~&quot;&lt;deployment&gt;-[^-]+-[^-]+&quot;}[7d]) 언제 pod가 이미 지워져 `kubectl get pod`로는 못 보는 재시작 이력을 사후에 확인할 때 주의 `[7d]` 같은 range vector가 핵심이다. 셀렉터만 쓰면 살아있는 pod만 나온다 — kube-state-metrics가 삭제된 pod의 시계열을 stale 처리하는데, staleness는 instant vector에만 적용되기 때문 주의 grafana 시간 범위를 `[7d]`와 맞춰야 한다. last 1 hour인 채로 `[7d]`를 써도 1시간 구간만 평가된다 주의 grafana explore 기준 type `instant` + format `table`. restartcount는 단조 증가라 최댓값이 곧 삭제 직전 최종 횟수다 주의 `pod=~&quot;&lt;deployment&gt;-.*&quot;`로 하면 이름이 겹치는 다른 deployment까지 딸려온다. `-[^-]+-[^-]+`는 `&lt;deployment&gt;-&lt;rs해시&gt;-&lt;pod해시&gt;` 형태에만 맞춘 패턴 (promql 정규식은 양끝이 자동 앵커링) 연관 kube-state-metrics v1.x는 레이블이 `pod_name`/`container_name`이다. 빈 결과면 레이블명부터 확인">
+      <h3>삭제된 Pod의 재시작 횟수 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>max_over_time(kube_pod_container_status_restarts_total{namespace=&quot;&lt;namespace&gt;&quot;, pod=~&quot;&lt;deployment&gt;-[^-]+-[^-]+&quot;}[7d])</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Pod가 이미 지워져 <code class="ic">kubectl get pod</code>로는 못 보는 재시작 이력을 사후에 확인할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">[7d]</code> 같은 range vector가 핵심이다. 셀렉터만 쓰면 살아있는 Pod만 나온다 — kube-state-metrics가 삭제된 Pod의 시계열을 stale 처리하는데, staleness는 instant vector에만 적용되기 때문</li><li class="warn"><span class="lb">주의</span>Grafana 시간 범위를 <code class="ic">[7d]</code>와 맞춰야 한다. Last 1 hour인 채로 <code class="ic">[7d]</code>를 써도 1시간 구간만 평가된다</li><li class="warn"><span class="lb">주의</span>Grafana Explore 기준 Type <code class="ic">Instant</code> + Format <code class="ic">Table</code>. restartCount는 단조 증가라 최댓값이 곧 삭제 직전 최종 횟수다</li><li class="warn"><span class="lb">주의</span><code class="ic">pod=~&quot;&lt;deployment&gt;-.*&quot;</code>로 하면 이름이 겹치는 다른 Deployment까지 딸려온다. <code class="ic">-[^-]+-[^-]+</code>는 <code class="ic">&lt;deployment&gt;-&lt;RS해시&gt;-&lt;Pod해시&gt;</code> 형태에만 맞춘 패턴 (PromQL 정규식은 양끝이 자동 앵커링)</li><li class="rel"><span class="lb">연관</span>kube-state-metrics v1.x는 레이블이 <code class="ic">pod_name</code>/<code class="ic">container_name</code>이다. 빈 결과면 레이블명부터 확인</li></ul>
+    </article>
+<article class="cmd" id="prometheus-재시작이-발생한-컨테이너만-추리기" data-search="prometheus / promql 재시작이 발생한 컨테이너만 추리기 max_over_time(kube_pod_container_status_restarts_total{namespace=&quot;&lt;namespace&gt;&quot;}[7d]) &gt; 0 언제 네임스페이스 전체에서 재시작을 겪은 컨테이너만 훑을 때 주의 promql의 비교 연산자는 기본이 **필터**다. 조건에 안 맞는 시계열은 결과에서 빠진다 연관 전수 확인은 `&gt; 0`을 떼면 된다">
+      <h3>재시작이 발생한 컨테이너만 추리기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>max_over_time(kube_pod_container_status_restarts_total{namespace=&quot;&lt;namespace&gt;&quot;}[7d]) &gt; 0</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>네임스페이스 전체에서 재시작을 겪은 컨테이너만 훑을 때</li><li class="warn"><span class="lb">주의</span>PromQL의 비교 연산자는 기본이 <strong>필터</strong>다. 조건에 안 맞는 시계열은 결과에서 빠진다</li><li class="rel"><span class="lb">연관</span>전수 확인은 <code class="ic">&gt; 0</code>을 떼면 된다</li></ul>
+    </article>
+<article class="cmd" id="prometheus-컨테이너의-마지막-종료-사유-확인" data-search="prometheus / promql 컨테이너의 마지막 종료 사유 확인 max_over_time(kube_pod_container_status_last_terminated_reason{namespace=&quot;&lt;namespace&gt;&quot;, pod=~&quot;&lt;deployment&gt;-[^-]+-[^-]+&quot;}[7d]) &gt; 0 언제 재시작이 oom 때문인지 프로세스 에러인지 가를 때 주의 **값은 항상 1이다.** 재시작 횟수가 아니다. 정보는 `reason` 레이블(`oomkilled` / `error` / `completed`)에 있다 주의 이름 그대로 **마지막** 종료 사유만 남는다. 여러 번 재시작하며 사유가 바뀌었다면 중간 이력은 안 보인다 연관 횟수는 `kube_pod_container_status_restarts_total`로 따로 본다">
+      <h3>컨테이너의 마지막 종료 사유 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>max_over_time(kube_pod_container_status_last_terminated_reason{namespace=&quot;&lt;namespace&gt;&quot;, pod=~&quot;&lt;deployment&gt;-[^-]+-[^-]+&quot;}[7d]) &gt; 0</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>재시작이 OOM 때문인지 프로세스 에러인지 가를 때</li><li class="warn"><span class="lb">주의</span><strong>값은 항상 1이다.</strong> 재시작 횟수가 아니다. 정보는 <code class="ic">reason</code> 레이블(<code class="ic">OOMKilled</code> / <code class="ic">Error</code> / <code class="ic">Completed</code>)에 있다</li><li class="warn"><span class="lb">주의</span>이름 그대로 <strong>마지막</strong> 종료 사유만 남는다. 여러 번 재시작하며 사유가 바뀌었다면 중간 이력은 안 보인다</li><li class="rel"><span class="lb">연관</span>횟수는 <code class="ic">kube_pod_container_status_restarts_total</code>로 따로 본다</li></ul>
+    </article>
+<article class="cmd" id="prometheus-pod-기동-시각-확인" data-search="prometheus / promql pod 기동 시각 확인 max_over_time(kube_pod_start_time{namespace=&quot;&lt;namespace&gt;&quot;, pod=&quot;&lt;pod&gt;&quot;}[7d]) 언제 삭제된 pod가 언제부터 떠 있었는지 알아야 할 때 주의 값이 unix epoch(초)다. grafana에서 unit을 `time &gt; datetime (from seconds)`로 바꾸거나 `date -r &lt;epoch&gt;` (리눅스는 `date -d @&lt;epoch&gt;`)로 변환 연관 type `range` + format `time series`로 그리면 값이 상수라 수평선이 된다. **선의 시작과 끝이 곧 pod 생존 구간**이라 epoch 변환 없이 x축에서 바로 읽힌다">
+      <h3>Pod 기동 시각 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>max_over_time(kube_pod_start_time{namespace=&quot;&lt;namespace&gt;&quot;, pod=&quot;&lt;pod&gt;&quot;}[7d])</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>삭제된 Pod가 언제부터 떠 있었는지 알아야 할 때</li><li class="warn"><span class="lb">주의</span>값이 Unix epoch(초)다. Grafana에서 Unit을 <code class="ic">Time &gt; Datetime (from seconds)</code>로 바꾸거나 <code class="ic">date -r &lt;epoch&gt;</code> (리눅스는 <code class="ic">date -d @&lt;epoch&gt;</code>)로 변환</li><li class="rel"><span class="lb">연관</span>Type <code class="ic">Range</code> + Format <code class="ic">Time series</code>로 그리면 값이 상수라 수평선이 된다. <strong>선의 시작과 끝이 곧 Pod 생존 구간</strong>이라 epoch 변환 없이 X축에서 바로 읽힌다</li></ul>
+    </article>
+<article class="cmd" id="prometheus-pod가-사라진-시각-확인" data-search="prometheus / promql pod가 사라진 시각 확인 max_over_time(timestamp(kube_pod_info{namespace=&quot;&lt;namespace&gt;&quot;, pod=&quot;&lt;pod&gt;&quot;})[7d:1m]) 언제 pod가 언제 삭제됐는지 역산할 때 주의 `[7d:1m]`은 subquery다. &quot;지난 7일을 1분 간격으로 되짚으며 안쪽 표현식을 평가&quot;한다는 뜻. `timestamp()`가 instant vector용이라 삭제된 pod에 직접 못 쓰는 걸 이 형태로 우회한다 주의 결과는 메트릭이 마지막으로 수집된 시각이다. 정밀도는 스크랩 주기(보통 30s) 수준 주의 결과가 현재 시각과 거의 같으면 그 pod는 아직 살아있는 것이다 연관 `kube_pod_info`는 값이 1인 info 메트릭. `created_by_name` 레이블로 소유 replicaset을 확인할 수 있어 pod 이름 패턴 검증에도 쓴다">
+      <h3>Pod가 사라진 시각 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>max_over_time(timestamp(kube_pod_info{namespace=&quot;&lt;namespace&gt;&quot;, pod=&quot;&lt;pod&gt;&quot;})[7d:1m])</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>Pod가 언제 삭제됐는지 역산할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">[7d:1m]</code>은 subquery다. &quot;지난 7일을 1분 간격으로 되짚으며 안쪽 표현식을 평가&quot;한다는 뜻. <code class="ic">timestamp()</code>가 instant vector용이라 삭제된 Pod에 직접 못 쓰는 걸 이 형태로 우회한다</li><li class="warn"><span class="lb">주의</span>결과는 메트릭이 마지막으로 수집된 시각이다. 정밀도는 스크랩 주기(보통 30s) 수준</li><li class="warn"><span class="lb">주의</span>결과가 현재 시각과 거의 같으면 그 Pod는 아직 살아있는 것이다</li><li class="rel"><span class="lb">연관</span><code class="ic">kube_pod_info</code>는 값이 1인 info 메트릭. <code class="ic">created_by_name</code> 레이블로 소유 ReplicaSet을 확인할 수 있어 Pod 이름 패턴 검증에도 쓴다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="skopeo" data-area="skopeo (컨테이너 이미지 복사)">
+  <h2>skopeo (컨테이너 이미지 복사)</h2>
+  <article class="cmd" id="skopeo-레지스트리-로그인" data-search="skopeo (컨테이너 이미지 복사) 레지스트리 로그인 sudo skopeo login &lt;registry&gt; -u &lt;user&gt; 언제 레지스트리에 push하기 전에, 또는 push가 `denied: requested access to the resource is denied` / `unauthorized: authentication required`로 실패할 때 주의 `&lt;registry&gt;`는 포트까지 포함한 주소다 (예: `registry.example.com:5000`). 비밀번호를 물으면 레지스트리 쓰기 권한이 있는 토큰을 넣는다. gitlab이면 `write_registry` 권한이 있는 personal access token이나 deploy token이다 주의 로그인 정보는 실행한 사용자별로 저장된다. push를 `sudo`로 할 거면 로그인도 `sudo`로 해야 한다. root는 `/run/containers/0/auth.json`에 저장되며, `/run`은 재부팅하면 지워진다 주의 로그인했는데도 `denied`만 나오면 계정 권한 문제다. gitlab은 그 프로젝트에 developer 이상이어야 push할 수 있다">
+      <h3>레지스트리 로그인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo skopeo login &lt;registry&gt; -u &lt;user&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>레지스트리에 push하기 전에, 또는 push가 <code class="ic">denied: requested access to the resource is denied</code> / <code class="ic">unauthorized: authentication required</code>로 실패할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">&lt;registry&gt;</code>는 포트까지 포함한 주소다 (예: <code class="ic">registry.example.com:5000</code>). 비밀번호를 물으면 레지스트리 쓰기 권한이 있는 토큰을 넣는다. GitLab이면 <code class="ic">write_registry</code> 권한이 있는 Personal Access Token이나 Deploy Token이다</li><li class="warn"><span class="lb">주의</span>로그인 정보는 실행한 사용자별로 저장된다. push를 <code class="ic">sudo</code>로 할 거면 로그인도 <code class="ic">sudo</code>로 해야 한다. root는 <code class="ic">/run/containers/0/auth.json</code>에 저장되며, <code class="ic">/run</code>은 재부팅하면 지워진다</li><li class="warn"><span class="lb">주의</span>로그인했는데도 <code class="ic">denied</code>만 나오면 계정 권한 문제다. GitLab은 그 프로젝트에 Developer 이상이어야 push할 수 있다</li></ul>
+    </article>
+<article class="cmd" id="skopeo-cri-o-노드에-있는-이미지를-레지스트리로-push" data-search="skopeo (컨테이너 이미지 복사) cri-o 노드에 있는 이미지를 레지스트리로 push sudo skopeo copy &quot;containers-storage:[&lt;driver&gt;@&lt;root&gt;+&lt;runroot&gt;]&lt;image&gt;:&lt;tag&gt;&quot; docker://&lt;registry&gt;/&lt;image&gt;:&lt;tag&gt; 언제 cri-o(또는 podman) 노드에 받아져 있는 이미지를 레지스트리로 올릴 때. `crictl`에는 push 기능이 없다 주의 `containers-storage:`는 cri-o·podman이 쓰는 로컬 이미지 저장소에서 읽고, `docker://`는 레지스트리에 쓴다. 이미지 이름에 레지스트리 주소가 들어 있으면 앞뒤 이름이 같아도 된다 주의 `[&lt;driver&gt;@&lt;root&gt;+&lt;runroot&gt;]`는 저장소 위치 지정이다. cri-o가 기본 경로(`/var/lib/containers/storage`)를 쓰면 대괄호 부분을 통째로 빼도 된다. 다른 경로를 쓰면 넣어야 하고, 안 넣으면 이미지를 못 찾는다. 대괄호를 쉘이 해석하지 않도록 따옴표로 감싼다 주의 저장소가 root 소유라 `sudo`가 필요하다. cri-o가 실행 중이어도 읽기는 괜찮다 주의 `erro failed to parse the authentication scope`는 다른 저장소에서 레이어를 가져다 쓰려다(cross-repo mount) 나오는 메시지로, 이후 작업은 계속 진행된다 주의 저장소에는 레이어가 압축 풀린 상태로 있어서 push할 때 다시 압축한다. 같은 이미지라도 manifest digest가 바뀔 수 있다 연관 `&lt;driver&gt;`, `&lt;root&gt;`, `&lt;runroot&gt;` 값은 [kubernetes](kubernetes.md#cri-o-이미지-저장소-경로-확인)에서 확인한다">
+      <h3>cri-o 노드에 있는 이미지를 레지스트리로 push</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>sudo skopeo copy &quot;containers-storage:[&lt;driver&gt;@&lt;root&gt;+&lt;runroot&gt;]&lt;image&gt;:&lt;tag&gt;&quot; docker://&lt;registry&gt;/&lt;image&gt;:&lt;tag&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>cri-o(또는 podman) 노드에 받아져 있는 이미지를 레지스트리로 올릴 때. <code class="ic">crictl</code>에는 push 기능이 없다</li><li class="warn"><span class="lb">주의</span><code class="ic">containers-storage:</code>는 cri-o·podman이 쓰는 로컬 이미지 저장소에서 읽고, <code class="ic">docker://</code>는 레지스트리에 쓴다. 이미지 이름에 레지스트리 주소가 들어 있으면 앞뒤 이름이 같아도 된다</li><li class="warn"><span class="lb">주의</span><code class="ic">[&lt;driver&gt;@&lt;root&gt;+&lt;runroot&gt;]</code>는 저장소 위치 지정이다. cri-o가 기본 경로(<code class="ic">/var/lib/containers/storage</code>)를 쓰면 대괄호 부분을 통째로 빼도 된다. 다른 경로를 쓰면 넣어야 하고, 안 넣으면 이미지를 못 찾는다. 대괄호를 쉘이 해석하지 않도록 따옴표로 감싼다</li><li class="warn"><span class="lb">주의</span>저장소가 root 소유라 <code class="ic">sudo</code>가 필요하다. cri-o가 실행 중이어도 읽기는 괜찮다</li><li class="warn"><span class="lb">주의</span><code class="ic">ERRO Failed to parse the authentication scope</code>는 다른 저장소에서 레이어를 가져다 쓰려다(cross-repo mount) 나오는 메시지로, 이후 작업은 계속 진행된다</li><li class="warn"><span class="lb">주의</span>저장소에는 레이어가 압축 풀린 상태로 있어서 push할 때 다시 압축한다. 같은 이미지라도 manifest digest가 바뀔 수 있다</li><li class="rel"><span class="lb">연관</span><code class="ic">&lt;driver&gt;</code>, <code class="ic">&lt;root&gt;</code>, <code class="ic">&lt;runroot&gt;</code> 값은 [kubernetes](kubernetes.md#cri-o-이미지-저장소-경로-확인)에서 확인한다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="ssh" data-area="SSH">
+  <h2>SSH</h2>
+  <article class="cmd" id="ssh-제어-소켓으로-접속-재사용-master-연결" data-search="ssh 제어 소켓으로 접속 재사용 (master 연결) ssh -f -n -m -s /tmp/&lt;name&gt;.sock -o controlpersist=1h &lt;user&gt;@&lt;host&gt; -p &lt;port&gt; 언제 비밀번호·otp 인증을 한 번만 하고, 이후 여러 명령이나 스크립트가 같은 연결을 재사용하게 할 때 주의 ssh 연결 멀티플렉싱이다. 인증된 통로를 소켓 파일로 노출해 두고, 이후 접속은 이 소켓을 통해 인증 없이 붙는다 주의 `-m` = master 모드(소켓을 만드는 쪽), `-s` = 소켓 파일 경로, `-f` = 인증 후 백그라운드로 내려감, `-n` = 원격 명령 없이 연결만 유지, `controlpersist=1h` = 마지막 사용 후 1시간 동안 유지 주의 소켓 파일 권한이 곧 접속 권한이다. 다른 사용자가 읽을 수 있는 경로에 두지 않는다 연관 상태 확인 `ssh -s /tmp/&lt;name&gt;.sock -o check &lt;user&gt;@&lt;host&gt;`, 종료 `ssh -s /tmp/&lt;name&gt;.sock -o exit &lt;user&gt;@&lt;host&gt;`">
+      <h3>제어 소켓으로 접속 재사용 (master 연결)</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>ssh -f -N -M -S /tmp/&lt;name&gt;.sock -o ControlPersist=1h &lt;user&gt;@&lt;host&gt; -p &lt;port&gt;</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>비밀번호·OTP 인증을 한 번만 하고, 이후 여러 명령이나 스크립트가 같은 연결을 재사용하게 할 때</li><li class="warn"><span class="lb">주의</span>SSH 연결 멀티플렉싱이다. 인증된 통로를 소켓 파일로 노출해 두고, 이후 접속은 이 소켓을 통해 인증 없이 붙는다</li><li class="warn"><span class="lb">주의</span><code class="ic">-M</code> = master 모드(소켓을 만드는 쪽), <code class="ic">-S</code> = 소켓 파일 경로, <code class="ic">-f</code> = 인증 후 백그라운드로 내려감, <code class="ic">-N</code> = 원격 명령 없이 연결만 유지, <code class="ic">ControlPersist=1h</code> = 마지막 사용 후 1시간 동안 유지</li><li class="warn"><span class="lb">주의</span>소켓 파일 권한이 곧 접속 권한이다. 다른 사용자가 읽을 수 있는 경로에 두지 않는다</li><li class="rel"><span class="lb">연관</span>상태 확인 <code class="ic">ssh -S /tmp/&lt;name&gt;.sock -O check &lt;user&gt;@&lt;host&gt;</code>, 종료 <code class="ic">ssh -S /tmp/&lt;name&gt;.sock -O exit &lt;user&gt;@&lt;host&gt;</code></li></ul>
+    </article>
+<article class="cmd" id="ssh-제어-소켓으로-원격-명령-실행" data-search="ssh 제어 소켓으로 원격 명령 실행 ssh -s /tmp/&lt;name&gt;.sock -p &lt;port&gt; &lt;user&gt;@&lt;host&gt; '&lt;command&gt;' 언제 master 연결이 떠 있는 상태에서 인증 없이 원격 명령을 실행할 때 주의 원격 명령은 작은따옴표로 감싸야 로컬 셸이 `$변수`나 `|`를 먼저 해석하지 않는다 주의 zsh에서는 `s=&quot;ssh -s ...&quot;` 처럼 변수에 담아 `$s '&lt;command&gt;'`로 쓰면 변수 전체가 명령 이름 하나로 취급돼 `no such file or directory`가 난다. 그대로 적거나 함수·alias로 만든다 주의 원격 명령이 멈추면 로컬도 같이 멈춘다. 오래 걸릴 수 있는 명령은 원격에서 `timeout &lt;초&gt;`로 감싼다">
+      <h3>제어 소켓으로 원격 명령 실행</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>ssh -S /tmp/&lt;name&gt;.sock -p &lt;port&gt; &lt;user&gt;@&lt;host&gt; '&lt;command&gt;'</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>master 연결이 떠 있는 상태에서 인증 없이 원격 명령을 실행할 때</li><li class="warn"><span class="lb">주의</span>원격 명령은 작은따옴표로 감싸야 로컬 셸이 <code class="ic">$변수</code>나 <code class="ic">|</code>를 먼저 해석하지 않는다</li><li class="warn"><span class="lb">주의</span>zsh에서는 <code class="ic">S=&quot;ssh -S ...&quot;</code> 처럼 변수에 담아 <code class="ic">$S '&lt;command&gt;'</code>로 쓰면 변수 전체가 명령 이름 하나로 취급돼 <code class="ic">no such file or directory</code>가 난다. 그대로 적거나 함수·alias로 만든다</li><li class="warn"><span class="lb">주의</span>원격 명령이 멈추면 로컬도 같이 멈춘다. 오래 걸릴 수 있는 명령은 원격에서 <code class="ic">timeout &lt;초&gt;</code>로 감싼다</li></ul>
+    </article>
+<article class="cmd" id="ssh-떠-있는-제어-소켓과-접속-대상-매핑-확인" data-search="ssh 떠 있는 제어 소켓과 접속 대상 매핑 확인 ps -ef | grep '[s]sh .*-s ' 언제 `/tmp`에 소켓이 여러 개 있을 때 어느 소켓이 어느 서버로 연결된 것인지 볼 때 주의 `[s]sh`는 grep 자신이 결과에 걸리지 않게 하는 방법이다(정규식 `[s]`는 s 한 글자와 맞지만 grep 명령줄의 문자열 `[s]sh`와는 안 맞는다) 주의 소켓 이름만 보고 판단하지 말고, 붙은 뒤 첫 명령으로 `hostname`을 찍어 대상 서버가 맞는지 확인한다">
+      <h3>떠 있는 제어 소켓과 접속 대상 매핑 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>ps -ef | grep '[s]sh .*-S '</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span><code class="ic">/tmp</code>에 소켓이 여러 개 있을 때 어느 소켓이 어느 서버로 연결된 것인지 볼 때</li><li class="warn"><span class="lb">주의</span><code class="ic">[s]sh</code>는 grep 자신이 결과에 걸리지 않게 하는 방법이다(정규식 <code class="ic">[s]</code>는 s 한 글자와 맞지만 grep 명령줄의 문자열 <code class="ic">[s]sh</code>와는 안 맞는다)</li><li class="warn"><span class="lb">주의</span>소켓 이름만 보고 판단하지 말고, 붙은 뒤 첫 명령으로 <code class="ic">hostname</code>을 찍어 대상 서버가 맞는지 확인한다</li></ul>
+    </article>
+</section>
+
+<section class="area" id="systemd" data-area="systemd / journalctl">
+  <h2>systemd / journalctl</h2>
+  <article class="cmd" id="systemd-서비스-로그를-시간-범위로-잘라내기" data-search="systemd / journalctl 서비스 로그를 시간 범위로 잘라내기 journalctl -u &lt;service&gt; \
+  --since '&lt;since&gt;' \
+  --until '&lt;until&gt;' \
+  --no-pager &gt; out.log 언제 장애 발생 시각을 아는 상태에서 그 구간만 떼어내 분석할 때 주의 `--no-pager`를 빠뜨리면 파일로 리다이렉트할 때 페이저에 걸려 멈춘다 주의 시각 형식은 `'yyyy-mm-dd hh:mm'` (예: `'2026-09-16 19:10'`). 따옴표 필수 연관 상대 시간도 된다 — `--since '30 min ago'`, `--since yesterday`">
+      <h3>서비스 로그를 시간 범위로 잘라내기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>journalctl -u &lt;service&gt; \
+  --since '&lt;since&gt;' \
+  --until '&lt;until&gt;' \
+  --no-pager &gt; out.log</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>장애 발생 시각을 아는 상태에서 그 구간만 떼어내 분석할 때</li><li class="warn"><span class="lb">주의</span><code class="ic">--no-pager</code>를 빠뜨리면 파일로 리다이렉트할 때 페이저에 걸려 멈춘다</li><li class="warn"><span class="lb">주의</span>시각 형식은 <code class="ic">'YYYY-MM-DD HH:MM'</code> (예: <code class="ic">'2026-09-16 19:10'</code>). 따옴표 필수</li><li class="rel"><span class="lb">연관</span>상대 시간도 된다 — <code class="ic">--since '30 min ago'</code>, <code class="ic">--since yesterday</code></li></ul>
+    </article>
+<article class="cmd" id="systemd-서비스-로그-실시간-확인" data-search="systemd / journalctl 서비스 로그 실시간 확인 journalctl -u &lt;service&gt; -f 언제 조치를 넣고 반응을 바로 보고 싶을 때 연관 `-n 100`으로 최근 줄부터 시작 — `journalctl -u &lt;service&gt; -n 100 -f`">
+      <h3>서비스 로그 실시간 확인</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>journalctl -u &lt;service&gt; -f</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>조치를 넣고 반응을 바로 보고 싶을 때</li><li class="rel"><span class="lb">연관</span><code class="ic">-n 100</code>으로 최근 줄부터 시작 — <code class="ic">journalctl -u &lt;service&gt; -n 100 -f</code></li></ul>
+    </article>
+<article class="cmd" id="systemd-특정-우선순위-이상만-보기" data-search="systemd / journalctl 특정 우선순위 이상만 보기 journalctl -u &lt;service&gt; -p warning --since today --no-pager 언제 로그가 많아 warning/error만 걸러내고 싶을 때 주의 `-p`는 지정 레벨 **이상**을 포함한다. `warning`이면 warning/err/crit/alert/emerg">
+      <h3>특정 우선순위 이상만 보기</h3>
+      <div class="codewrap">
+        <div class="codebar"><button class="copy" type="button">복사</button></div>
+        <pre><code>journalctl -u &lt;service&gt; -p warning --since today --no-pager</code></pre>
+      </div>
+      <ul class="notes"><li class="when"><span class="lb">언제</span>로그가 많아 WARNING/ERROR만 걸러내고 싶을 때</li><li class="warn"><span class="lb">주의</span><code class="ic">-p</code>는 지정 레벨 <strong>이상</strong>을 포함한다. <code class="ic">warning</code>이면 warning/err/crit/alert/emerg</li></ul>
+    </article>
+</section>
+  <p class="empty" id="empty">일치하는 명령어가 없습니다.</p>
+  </main>
+</div>
+<script>
+const q=document.getElementById('q'),cmds=[...document.querySelectorAll('.cmd')],
+      areas=[...document.querySelectorAll('.area')],cnt=document.getElementById('count'),
+      empty=document.getElementById('empty'),TOTAL=85;
+// 화면 전환. 해시가 없거나 #/ 면 메인(목차), #<영역> 이면 그 영역, #<명령어 id> 면 그 명령어가 속한 영역.
+// 검색어가 있으면 어느 화면에서든 전체 검색 결과를 보여준다.
+let route={view:'home'};
+function parseHash(){
+  const h=decodeURIComponent(location.hash.slice(1));
+  if(!h||h==='/')return {view:'home'};
+  const sec=document.getElementById(h);
+  if(sec&&sec.classList.contains('area'))return {view:'area',area:h};
+  if(sec&&sec.classList.contains('cmd'))return {view:'area',area:sec.closest('.area').id,target:h};
+  return {view:'home'};
+}
+function render(){
+  const terms=q.value.toLowerCase().split(/\s+/).filter(Boolean);
+  const view=terms.length?'search':route.view;
+  document.body.dataset.view=view;
+  let n=0;
+  cmds.forEach(c=>{
+    const h=c.dataset.search, ok=view==='search'?terms.every(t=>h.includes(t))
+      :view==='area'?c.closest('.area').id===route.area:false;
+    c.classList.toggle('hide',!ok); if(ok)n++;
+  });
+  areas.forEach(a=>a.classList.toggle('hide',!a.querySelector('.cmd:not(.hide)')));
+  cnt.textContent = view==='search' ? n+'개 / '+TOTAL : view==='area' ? n+'개' : TOTAL+'개';
+  empty.style.display = view==='search'&&!n?'block':'none';
+  // 목차에는 지금 화면에 보이는 항목만 남긴다. 영역 화면에서는 그 영역만 펼친다.
+  tocAreas.forEach(d=>{
+    let any=false;
+    d.querySelectorAll('li').forEach(li=>{
+      const c=document.getElementById(li.firstChild.dataset.target), ok=!c.classList.contains('hide');
+      li.classList.toggle('hide',!ok); if(ok)any=true;
+    });
+    d.classList.toggle('hide',!any);
+    if(view!=='home') d.open=any;
+  });
+}
+function go(){
+  route=parseHash(); activeId=null; render();
+  const t=route.target&&document.getElementById(route.target);
+  if(t)t.scrollIntoView(); else window.scrollTo(0,0);
+}
+const filter=render;
+const toc=document.getElementById('toc'),tocAreas=[...document.querySelectorAll('.toc-area')],
+      allBtn=document.getElementById('toc-all'),togBtn=document.getElementById('toc-toggle');
+allBtn.addEventListener('click',()=>{
+  const open=!tocAreas.every(d=>d.open||d.classList.contains('hide'));
+  tocAreas.forEach(d=>d.open=open); allBtn.textContent=open?'모두 접기':'모두 펼치기';
+});
+togBtn.addEventListener('click',()=>{
+  toc.classList.toggle('open'); togBtn.textContent=toc.classList.contains('open')?'닫기':'열기';
+});
+toc.addEventListener('click',e=>{
+  if(e.target.closest('a')&&matchMedia('(max-width:900px)').matches){toc.classList.remove('open');togBtn.textContent='열기';}
+});
+// 화면에 보이는 명령어를 목차에 표시한다.
+const links=new Map([...document.querySelectorAll('.toc a')].map(a=>[a.dataset.target,a]));
+let activeId=null;
+function mark(id){
+  if(id===activeId)return; activeId=id;
+  document.querySelectorAll('.toc a.active').forEach(a=>a.classList.remove('active'));
+  tocAreas.forEach(d=>d.classList.remove('current'));
+  const a=links.get(id); if(!a)return;
+  a.classList.add('active');
+  const d=a.closest('.toc-area'); d.classList.add('current');
+  if(!q.value.trim()&&!matchMedia('(max-width:900px)').matches){
+    if(!d.open)d.open=true;
+    const r=a.getBoundingClientRect(),t=toc.getBoundingClientRect();
+    if(r.top<t.top||r.bottom>t.bottom)a.scrollIntoView({block:'nearest'});
+  }
+}
+const seen=new Set();
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>e.isIntersecting?seen.add(e.target):seen.delete(e.target));
+  const top=cmds.filter(c=>seen.has(c)).sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top)[0];
+  if(top)mark(top.id);
+},{rootMargin:'-90px 0px -55% 0px'});
+cmds.forEach(c=>io.observe(c));
+q.addEventListener('input',filter);
+window.addEventListener('hashchange',go);
+go();
+document.addEventListener('keydown',e=>{
+  if(e.key==='/'&&document.activeElement!==q){e.preventDefault();q.focus();}
+  if(e.key==='Escape'&&document.activeElement===q){q.value='';filter();q.blur();}
+});
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.copy'); if(!b)return;
+  navigator.clipboard.writeText(b.closest('.codewrap').querySelector('pre code').textContent).then(()=>{
+    b.textContent='복사됨'; b.classList.add('done');
+    setTimeout(()=>{b.textContent='복사';b.classList.remove('done')},1200);
+  });
+});
+</script>
+</body>
+</html>

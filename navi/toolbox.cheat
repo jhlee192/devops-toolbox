@@ -1,0 +1,282 @@
+% 파일 일괄 수정 (ls, grep, sed)
+
+# 숫자가 섞인 경로를 숫자 순으로 나열 — 번호 붙은 파일·디렉터리를 1, 2, 3 순서로 보고 싶을 때
+ls -lv <files>
+
+# 여러 파일을 숫자 순으로 grep — 여러 파일을 순서대로 grep할 때. 수정 전후 확인용
+ls -v <files> | xargs grep -H <keyword>
+
+# 치환 결과 미리보기 — sed -i로 고치기 전에 바뀔 줄만 확인할 때
+sed -n 's/<pattern>//p' <files>
+
+# 여러 파일에서 문자열 일괄 삭제 — 여러 파일에서 같은 문자열을 한 번에 지울 때
+sudo sed -i.bak 's/<pattern>//' <files>
+
+# 특정 줄과 다음 줄을 함께 삭제 — YAML 리스트 항목처럼 두 줄짜리 블록을 빼낼 때
+sudo sed -i.bak '/<first_line>$/{N;/<next_keyword>/d}' <files>
+
+# sed 백업 파일 일괄 삭제 — sed -i.bak 결과를 확인한 뒤 백업을 정리할 때
+sudo rm -f <files>.bak
+
+% 체크섬
+
+# 공개된 SHA256 값으로 파일 검증 — 다운로드한 파일(JDK 압축 파일, 설치 파일 등)이 배포처가 공개한 SHA256 값과 같은지 확인할 때. 체크섬 파일 없이 해시 문자열만 받은 경우에 쓴다
+echo "<sha256>  <file>" | sha256sum -c -
+
+% dns (노드)
+
+# 노드가 실제로 쓰는 DNS 서버 확인 — 노드나 Pod에서 DNS가 안 될 때 가장 먼저. nameserver와 search 도메인을 확인한다
+ls -l /etc/resolv.conf; cat /etc/resolv.conf
+
+# NetworkManager 연결의 DNS 설정 확인 — resolv.conf가 왜 그렇게 생성됐는지 원래 설정을 볼 때
+nmcli -t -f NAME,DEVICE con show --active; nmcli -g ipv4.method,ipv4.dns,ipv4.dns-search,ipv4.ignore-auto-dns con show <connection>
+
+# 특정 목적지로 가는 경로 확인 — 업스트림 DNS나 외부 서버로 패킷이 어느 인터페이스, 어느 게이트웨이로 나가는지 볼 때
+ip route get <ip>
+
+# dig 없이 DNS 응답률 측정 — 노드에 dig, nslookup이 없을 때(bind-utils 미설치) DNS 서버가 응답하는지, 간헐적으로 응답을 놓치는지 측정할 때
+python3 - <<'PY'; import socket, struct, random, time; server, name, n = "<dns-server>", "<name>", 120; ok = fail = 0; lat = []; for i in range(n):; q = struct.pack(">HHHHHH", random.randint(0, 65535), 0x0100, 1, 0, 0, 0) + b"".join(bytes([len(p)]) + p.encode() for p in name.split(".")) + b"\0" + struct.pack(">HH", 1, 1); s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(2); t = time.time(); s.sendto(q, (server, 53)); try:; d, _ = s.recvfrom(4096); ok += 1; lat.append(time.time() - t); except Exception:; fail += 1; print("timeout", time.strftime("%H:%M:%S")); s.close(); time.sleep(0.4); lat.sort(); print("ok=%d fail=%d p50=%.0fms max=%.0fms" % (ok, fail, lat[len(lat)//2]*1000, lat[-1]*1000)); PY
+
+# resolv.conf 변경 이력 보기 — resolv.conf가 언제, 무엇 때문에 다시 생성됐는지 따라갈 때
+sudo journalctl -u NetworkManager --since '<since>' --until '<until>' --no-pager | grep -iE 'dns|dhcp|resolv'
+
+% docker
+
+# 컨테이너 로그 설정 확인 — 컨테이너 로그가 로테이션되고 있는지 볼 때
+sudo docker inspect <container> --format '{{.HostConfig.LogConfig}}'
+
+# 컨테이너 로그 파일 크기 확인 — docker logs가 느리거나, /var/lib/docker가 커졌거나, dockerd CPU가 높을 때
+sudo sh -c 'ls -lh $(docker inspect <container> --format {{.LogPath}})'
+
+# 컨테이너 환경변수 확인 — compose 파일을 찾지 않고, 실행 중인 컨테이너에 실제로 들어간 환경변수를 볼 때 (예: GitLab의 GITLAB_OMNIBUS_CONFIG)
+sudo docker inspect <container> --format '{{range .Config.Env}}{{println .}}{{end}}'
+
+# daemon.json 문법 검사 — daemon.json을 고친 뒤 dockerd를 재시작하기 전에
+sudo python3 -m json.tool /etc/docker/daemon.json
+
+# daemon.json 변경 반영 (dockerd 재시작) — daemon.json(로그 기본값 등)을 바꾼 뒤
+sudo systemctl restart docker
+
+# compose 컨테이너 재생성 — 환경변수나 로그 설정처럼 컨테이너를 만들 때 고정되는 값을 바꾼 뒤
+cd <compose-dir> && sudo docker compose down && sudo docker compose up -d
+
+% gitlab (omnibus, docker)
+
+# 서비스 구성요소 상태 확인 — GitLab 안의 puma, sidekiq, gitaly, postgresql 같은 구성요소가 모두 떠 있는지, 언제 재시작됐는지 볼 때
+sudo docker exec <container> gitlab-ctl status
+
+# 실제 적용된 설정 값 보기 — gitlab.rb와 GITLAB_OMNIBUS_CONFIG 환경변수를 합쳐서 최종적으로 어떤 값이 적용됐는지 볼 때
+sudo docker exec <container> gitlab-ctl show-config 2>/dev/null | grep -A3 -E '"(<key>)"'
+
+# show-config에 안 보이는 기본값 추적 — 설정하지 않은 값이 실제로 어떻게 정해지는지 단계별로 따라갈 때
+sudo docker exec <container> grep -n "<key>" /opt/gitlab/embedded/cookbooks/gitlab/attributes/default.rb; sudo docker exec <container> grep -n "<key>" /var/opt/gitlab/gitlab-rails/etc/gitlab.yml; sudo docker exec <container> grep -n "<key>" /opt/gitlab/embedded/service/gitlab-rails/config/initializers/1_settings.rb
+
+# Rails 설정 값 직접 조회 — 메일이 실제로 켜져 있는지, 어떤 방식(smtp/sendmail)으로 나가는지처럼 최종 적용 값을 확인할 때
+sudo docker exec <container> gitlab-rails runner 'puts Gitlab.config.gitlab.email_enabled; puts ActionMailer::Base.delivery_method'
+
+# Sidekiq 사용률과 큐 대기 시간 확인 — 머지나 파이프라인 진행이 느릴 때, Sidekiq가 밀려 있는지 볼 때
+sudo docker exec <container> gitlab-rails runner 'require "sidekiq/api"; Sidekiq::ProcessSet.new.each { |p| puts "concurrency=#{p["concurrency"]} busy=#{p["busy"]}" }; Sidekiq::Queue.all.each { |q| puts "#{q.name} size=#{q.size} latency=#{q.latency.round}s" }'
+
+# Sidekiq에서 지금 실행 중인 잡 보기 — 스레드를 무엇이 차지하고 있는지, 몇 분째 안 끝나는 잡이 있는지 볼 때
+sudo docker exec <container> gitlab-rails runner 'require "sidekiq/api"; Sidekiq::Workers.new.each { |_, _, w| pl = w["payload"]; pl = Sidekiq.load_json(pl) if pl.is_a?(String); puts "#{(Time.now.to_i - w["run_at"]).to_i}s #{pl["class"]} q=#{w["queue"]}" }'
+
+# 큐에 쌓인 잡 종류 집계 — 큐가 밀려 있을 때, 어떤 잡이 많이 쌓였는지 볼 때
+sudo docker exec <container> gitlab-rails runner 'require "sidekiq/api"; Sidekiq::Queue.new("<queue>").map(&:klass).tally.sort_by { -_2 }.first(10).each { |k, v| puts "#{v} #{k}" }'
+
+# 실패 잡(Dead / Retry) 원인 집계 — Dead 목록이 쌓였을 때 어떤 잡이 어떤 에러로 죽는지 한눈에 볼 때
+sudo docker exec <container> gitlab-rails runner 'require "sidekiq/api"; Sidekiq::DeadSet.new.first(2000).map { |j| [j.klass, j["error_class"]] }.tally.sort_by { -_2 }.first(8).each { |k, v| puts "#{v} #{k.inspect}" }'
+
+# 머지 진행 중(locked)으로 멈춘 MR 찾기 — MR이 "Merging! Drum roll" 화면에서 넘어가지 않을 때
+sudo docker exec <container> gitlab-rails runner 'MergeRequest.where(state_id: MergeRequest.available_states[:locked]).each { |m| puts "#{m.project.full_path}!#{m.iid} jid=#{m.merge_jid} running=#{Gitlab::SidekiqStatus.running?(m.merge_jid)} updated=#{m.updated_at}" }'
+
+# Sidekiq 로그에서 특정 문자열 찾기 — 특정 워커(MergeWorker 등)나 에러(Errno::ENOENT 등)가 언제, 얼마나 걸렸는지 볼 때
+sudo docker exec <container> sh -c "grep -h '<pattern>' /var/log/gitlab/sidekiq/current | tail -20"
+
+# 내장 PostgreSQL 커넥션 사용량 — Sidekiq 스레드나 puma 워커를 늘리기 전에 DB 커넥션 여유를 확인할 때
+echo "select count(*) || ' / ' || current_setting('max_connections') from pg_stat_activity;" | sudo docker exec -i <container> gitlab-psql -At
+
+# Rails 콘솔 열기 — 유저 상태 조회나 잠금 해제처럼 Ruby 코드를 여러 줄 이어서 실행할 때
+sudo docker exec -it <container> gitlab-rails console
+
+# 계정 잠금 상태와 실패 횟수 확인 — 로그인할 때 "Your account is locked."가 뜰 때
+sudo docker exec <container> gitlab-rails runner 'u = User.find_by_username("<user>"); puts "locked=#{u.access_locked?} failed=#{u.failed_attempts}"'
+
+# 계정 잠금 해제 — 잠금 시간이 지나기를 기다릴 수 없을 때, 특히 root처럼 웹에서 풀어 줄 다른 관리자가 없을 때
+sudo docker exec <container> gitlab-rails runner 'User.find_by_username("<user>").unlock_access!'
+
+# 계정 잠금 기준 확인 — 몇 번 틀리면 잠기는지, 잠긴 뒤 언제 저절로 풀리는지 볼 때
+sudo docker exec <container> gitlab-rails runner 'puts User.maximum_attempts; puts User.unlock_in'
+
+# 인증 이벤트 테이블에서 로그인 실패 IP 조회 — 어떤 계정의 로그인 실패가 언제, 어느 IP에서 났는지 볼 때
+sudo docker exec <container> gitlab-rails runner 'AuthenticationEvent.where(user_name: "<user>", result: :failed).order(created_at: :desc).limit(40).pluck(:created_at, :ip_address, :provider).each { |r| puts r.join(" ") }'
+
+# 로그에서 로그인 실패 IP 찾기 — 계정이 잠겼거나 로그인 실패가 의심될 때, 누가(어느 IP가) 시도했는지 찾을 때
+sudo docker exec <container> grep -h 'Failed Login: username=<user>' /var/log/gitlab/gitlab-rails/application_json.log
+
+# 번들 Nginx 설정 문법 검사 — GitLab에 포함된 Nginx 설정 파일을 직접 고친 뒤 반영하기 전에
+sudo docker exec <container> /opt/gitlab/embedded/sbin/nginx -t -c /var/opt/gitlab/nginx/conf/nginx.conf
+
+# 번들 Nginx 설정 무중단 반영 — 번들 Nginx 설정을 고치고 연결을 끊지 않고 반영할 때
+sudo docker exec <container> gitlab-ctl hup nginx
+
+# 직접 고친 번들 Nginx 설정이 남아 있는지 확인 — gitlab-ctl reconfigure나 GitLab 업그레이드 뒤, 직접 넣은 Nginx 설정이 살아 있는지 볼 때
+sudo docker exec <container> grep -c '<directive>' /var/opt/gitlab/nginx/conf/<conf-file>
+
+# 버전별 변경 내역(CHANGELOG) 검색 — 업그레이드 뒤 동작이 바뀐 것 같을 때, 어느 버전에서 어떤 수정이 들어갔는지 찾을 때
+curl -sfL "https://gitlab.com/gitlab-org/gitlab/-/raw/<major>-<minor>-stable-ee/CHANGELOG.md" -o CHANGELOG.md; grep -n "^## <major>.<minor>" CHANGELOG.md; grep -niE "<keyword>" CHANGELOG.md; awk '/^## /{h=$0} NR==<line>{print h}' CHANGELOG.md
+
+% java 인증서 (keytool)
+
+# truststore에서 CA 이름으로 검색 — Java가 HTTPS 호출에서 PKIX path building failed를 낼 때, 그 서버 인증서의 루트 CA가 JVM의 신뢰 저장소(cacerts)에 들어 있는지 볼 때
+keytool -list -v -cacerts -storepass changeit | grep -i 'Owner:' | grep -i '<ca-name>'
+
+# CA 이름으로 alias 찾기 — 등록된 인증서를 지우거나 확인하려는데 저장소 안에서 부르는 이름(alias)을 모를 때
+keytool -list -v -keystore <keystore> -storepass changeit | grep -iE 'Alias name|Owner:' | grep -iB1 '<ca-name>'
+
+# 특정 alias 등록 여부 확인 — 인증서를 등록한 뒤 제대로 들어갔는지 볼 때
+keytool -list -cacerts -storepass changeit -alias <alias>
+
+# 루트 CA 인증서 등록 — 사설 CA나 JDK 기본 cacerts에 없는 CA(정부 GPKI 등)가 발급한 인증서를 Java가 신뢰하게 만들 때
+keytool -importcert -cacerts -storepass changeit -alias <alias> -file <cert-file> -noprompt
+
+# 인증서 삭제 — 잘못 넣은 인증서를 뺄 때. 또는 cacerts **복사본**에서 특정 CA를 빼고 -Djavax.net.ssl.trustStore=<복사본>으로 실행해 "이 CA가 없으면 PKIX 에러가 나는지" 재현할 때
+keytool -delete -alias <alias> -keystore <keystore> -storepass changeit
+
+# 컨테이너 안 JVM에 호스트 인증서 등록 — 인증서 파일은 호스트에 있는데 컨테이너 안의 Java에 등록할 때
+docker exec -i <container> keytool -importcert -cacerts -storepass changeit -alias <alias> -noprompt < <cert-file>
+
+% kubernetes
+
+# Pod UID로 어떤 Pod인지 찾기 — 노드의 /var/lib/kubelet/pods/<pod-uid> 디렉터리가 어느 Pod의 것인지 알아내야 할 때. 디렉터리 이름이 Pod UID다
+crictl pods --label io.kubernetes.pod.uid=<pod-uid>
+
+# Pod 이름으로 UID 확인 — 특정 Pod의 kubelet 디렉터리(/var/lib/kubelet/pods/<pod-uid>)를 노드에서 찾아가야 할 때
+kubectl -n <namespace> get pod <pod> -o jsonpath='{.metadata.uid}{"\n"}'
+
+# 네임스페이스의 Pod UID와 노드 한 번에 보기 — 여러 Pod의 UID를 훑어보거나, 어느 노드의 kubelet 디렉터리를 봐야 하는지 같이 알아야 할 때
+kubectl -n <namespace> get pods -o custom-columns=NAME:.metadata.name,UID:.metadata.uid,NODE:.spec.nodeName
+
+# 노드에서 crictl로 Pod UID 확인 — kubectl 권한 없이 노드에서 Pod의 UID를 알아야 할 때
+crictl pods --name <pod> -o json | grep '"io.kubernetes.pod.uid"'
+
+# cri-o 이미지 저장소 경로 확인 — cri-o가 이미지를 어디에 저장하는지 알아야 할 때. skopeo나 podman으로 노드의 이미지를 직접 다룰 때 필요하다
+sudo crio config 2>/dev/null | grep -E '^\s*(root|runroot|storage_driver) '
+
+# CoreDNS 로그에서 업스트림 timeout 찾기 — Pod에서 DNS 조회가 실패하거나 느릴 때, CoreDNS가 업스트림 DNS로 넘긴 질의가 응답을 못 받는지 볼 때
+kubectl -n kube-system logs -l k8s-app=kube-dns --timestamps --prefix --tail=500 | grep -i timeout
+
+# CoreDNS 설정(Corefile) 확인 — CoreDNS가 외부 질의를 어디로 넘기는지(forward), hosts 항목이 있는지 볼 때
+kubectl -n kube-system get cm coredns -o jsonpath='{.data.Corefile}'
+
+# kubelet의 DNS 설정 확인 — Pod의 resolv.conf가 어디서 오는지, 클러스터 DNS IP와 도메인이 무엇인지 노드에서 볼 때
+sudo grep -iE 'resolvConf|clusterDNS|clusterDomain' -A2 /var/lib/kubelet/config.yaml
+
+# 임시 Pod로 DNS 경로 비교 — Pod 네트워크에서 업스트림 DNS로 바로 질의하는 경우와 CoreDNS를 거치는 경우를 나란히 비교할 때. 어느 구간이 막혔는지 가른다
+kubectl run dnstest-tmp --rm -i --restart=Never --image=<image> --image-pull-policy=IfNotPresent -- sh -c "cat /etc/resolv.conf; nslookup <name> <upstream-ip>; nslookup <name> <cluster-dns-ip>"
+
+# 노드에 이미 있는 이미지 찾기 — 외부망이 막힌 클러스터에서 디버그용 Pod를 띄울 이미지를 고를 때
+sudo crictl images | grep -iE '<pattern>'
+
+# Pod 컨테이너별 준비 상태·재시작·직전 종료 사유 보기 — 2/3 Running처럼 일부 컨테이너만 안 뜰 때, 어느 컨테이너가 몇 번 왜 죽었는지 한 줄씩 볼 때
+kubectl -n <namespace> get pod <pod> -o jsonpath='{range .status.containerStatuses[*]}{.name} ready={.ready} restarts={.restartCount} {.lastState.terminated.reason} {.lastState.terminated.exitCode}{"\n"}{end}'
+
+# 재시작 전 컨테이너 로그 보기 — 컨테이너가 재시작을 반복할 때, 죽기 직전에 무엇을 찍었는지 볼 때
+kubectl -n <namespace> logs <pod> -c <container> --previous --tail=50
+
+# 네임스페이스 이벤트를 시간순으로 보기 — probe 실패, 재시작, 스케줄링 실패처럼 Pod에 무슨 일이 있었는지 최근 순서로 볼 때
+kubectl -n <namespace> get events --sort-by=.lastTimestamp | tail -20
+
+# 컨테이너 probe·리소스 설정 보기 — 컨테이너가 probe 실패로 재시작될 때, probe 명령과 timeout·실패 허용 횟수를 확인할 때
+kubectl -n <namespace> get <kind> <name> -o jsonpath='{range .spec.template.spec.containers[*]}{.name}: L={.livenessProbe} R={.readinessProbe} RES={.resources}{"\n"}{end}'
+
+# Running이 아닌 Pod만 보기 — 클러스터 전체에서 문제 있는 Pod만 빠르게 추릴 때
+kubectl get pod -A --field-selector=status.phase!=Running | grep -v Completed
+
+# Deployment가 언제 재시작·변경됐는지 보기 — 에러가 시작된 시점과 Deployment 변경·재시작 시점을 맞춰볼 때
+kubectl -n <namespace> get rs -l <label-selector>; kubectl -n <namespace> get deploy <deploy> -o jsonpath='{.spec.template.metadata.annotations}{"\n"}'
+
+# PVC가 실제로 어디에 저장되는지 보기 — Pod가 I/O에서 멈춘 것 같을 때, 볼륨이 NFS인지 노드 로컬 경로인지 CSI인지 가를 때
+for pv in $(kubectl -n <namespace> get pvc -o jsonpath='{.items[*].spec.volumeName}'); do; kubectl get pv $pv -o jsonpath='{.metadata.name} {.spec.storageClassName} {.spec.nfs} {.spec.hostPath} {.spec.local} {.spec.csi.driver}{"\n"}'; done
+
+% linux 프로세스·커널
+
+# D state로 멈춘 프로세스 찾기 — ps, top, pgrep, kubectl exec가 응답 없이 멈출 때. 커널 안에서 대기하다 깨어나지 못한 프로세스가 있는지 찾는다
+for f in /proc/[0-9]*/stat; do; s=$(timeout 1 cat $f 2>/dev/null) || continue; set -- $s; [ "$3" = D ] && echo "$1 $2 D"; done
+
+# 프로세스가 커널 어디서 멈췄는지 보기 — D state 프로세스가 무엇을 기다리는지 가릴 때. 디스크·NFS I/O인지, 메모리 관리 쪽 락인지
+sudo cat /proc/<pid>/stack; cat /proc/<pid>/wchan; echo; awk '/^(State|VmRSS|Threads)/' /proc/<pid>/status
+
+# 프로세스 시작 시각 확인 — ps가 멈춰서 쓸 수 없을 때, 멈춘 프로세스가 언제부터 떠 있었는지 볼 때
+sudo ls -ld --time-style=+%F_%T /proc/<pid>
+
+# THP(Transparent Huge Page) 설정 확인 — Redis·DB 같은 메모리 집약 프로세스가 지연되거나, khugepaged가 D state일 때
+cat /sys/kernel/mm/transparent_hugepage/enabled /sys/kernel/mm/transparent_hugepage/defrag
+
+# 커널 메시지에서 hung task·OOM 찾기 — 프로세스가 멈췄거나 죽었을 때 커널이 남긴 경고를 볼 때
+sudo dmesg -T | grep -iE 'hung_task|blocked for more|oom|<pattern>' | tail -20
+
+# conntrack 테이블 사용량 확인 — UDP(DNS 등) 패킷이 간헐적으로 사라질 때 연결 추적 테이블이 꽉 찼는지 볼 때
+sudo cat /proc/sys/net/netfilter/nf_conntrack_count /proc/sys/net/netfilter/nf_conntrack_max
+
+% loki
+
+# 로그 보존 기간(retention) 설정 확인 — Loki 로그가 언제 지워지는지, 아니면 무제한으로 쌓이는지 확인할 때
+cat /etc/loki/loki.yaml | grep retention
+
+% nginx
+
+# 적용 중인 설정 전체 보기 — 어느 포트·도메인의 server 블록에 어떤 location이 있고 어디로 프록시되는지, 넣은 접근 제어가 실제로 들어갔는지 볼 때
+sudo nginx -T -c <nginx-conf> 2>/dev/null | grep -nE 'listen|server_name|location|limit_except|allow|deny|proxy_pass'
+
+# 설정 문법 검사 — 설정을 고친 뒤 반영하기 전에 항상
+sudo nginx -t -c <nginx-conf>
+
+# 설정 무중단 반영 — 설정을 바꾸고 연결을 끊지 않고 반영할 때
+sudo nginx -s reload
+
+% prometheus, promql
+
+# 삭제된 Pod의 재시작 횟수 확인 — Pod가 이미 지워져 kubectl get pod로는 못 보는 재시작 이력을 사후에 확인할 때
+max_over_time(kube_pod_container_status_restarts_total{namespace="<namespace>", pod=~"<deployment>-[^-]+-[^-]+"}[7d])
+
+# 재시작이 발생한 컨테이너만 추리기 — 네임스페이스 전체에서 재시작을 겪은 컨테이너만 훑을 때
+max_over_time(kube_pod_container_status_restarts_total{namespace="<namespace>"}[7d]) > 0
+
+# 컨테이너의 마지막 종료 사유 확인 — 재시작이 OOM 때문인지 프로세스 에러인지 가를 때
+max_over_time(kube_pod_container_status_last_terminated_reason{namespace="<namespace>", pod=~"<deployment>-[^-]+-[^-]+"}[7d]) > 0
+
+# Pod 기동 시각 확인 — 삭제된 Pod가 언제부터 떠 있었는지 알아야 할 때
+max_over_time(kube_pod_start_time{namespace="<namespace>", pod="<pod>"}[7d])
+
+# Pod가 사라진 시각 확인 — Pod가 언제 삭제됐는지 역산할 때
+max_over_time(timestamp(kube_pod_info{namespace="<namespace>", pod="<pod>"})[7d:1m])
+
+% skopeo (컨테이너 이미지 복사)
+
+# 레지스트리 로그인 — 레지스트리에 push하기 전에, 또는 push가 denied: requested access to the resource is denied / unauthorized: authentication required로 실패할 때
+sudo skopeo login <registry> -u <user>
+
+# cri-o 노드에 있는 이미지를 레지스트리로 push — cri-o(또는 podman) 노드에 받아져 있는 이미지를 레지스트리로 올릴 때. crictl에는 push 기능이 없다
+sudo skopeo copy "containers-storage:[<driver>@<root>+<runroot>]<image>:<tag>" docker://<registry>/<image>:<tag>
+
+% ssh
+
+# 제어 소켓으로 접속 재사용 (master 연결) — 비밀번호·OTP 인증을 한 번만 하고, 이후 여러 명령이나 스크립트가 같은 연결을 재사용하게 할 때
+ssh -f -N -M -S /tmp/<name>.sock -o ControlPersist=1h <user>@<host> -p <port>
+
+# 제어 소켓으로 원격 명령 실행 — master 연결이 떠 있는 상태에서 인증 없이 원격 명령을 실행할 때
+ssh -S /tmp/<name>.sock -p <port> <user>@<host> '<command>'
+
+# 떠 있는 제어 소켓과 접속 대상 매핑 확인 — /tmp에 소켓이 여러 개 있을 때 어느 소켓이 어느 서버로 연결된 것인지 볼 때
+ps -ef | grep '[s]sh .*-S '
+
+% systemd, journalctl
+
+# 서비스 로그를 시간 범위로 잘라내기 — 장애 발생 시각을 아는 상태에서 그 구간만 떼어내 분석할 때
+journalctl -u <service> --since '<since>' --until '<until>' --no-pager > out.log
+
+# 서비스 로그 실시간 확인 — 조치를 넣고 반응을 바로 보고 싶을 때
+journalctl -u <service> -f
+
+# 특정 우선순위 이상만 보기 — 로그가 많아 WARNING/ERROR만 걸러내고 싶을 때
+journalctl -u <service> -p warning --since today --no-pager
